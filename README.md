@@ -37,6 +37,9 @@ cross-references. Read them as:
 - `2026-09-01-divmcp-phase1.md` — the MCP server (divmcp) built & verified.
 - `2026-09-09-strands-agent-loop.md` — design: Strands Agents as the loop + MCP substrate.
 - `2026-09-09-strands-agent-plan.md` — build plan: rebuild the CNQ.TO analyze slice on Strands+MCP.
+- `2026-09-15-trace-console.md` — hidden divreact page streaming a live source-tagged
+  pipeline trace (you→fastapi→agent→mcp); architecture, shared-`TRACE_SECRET` auth,
+  the three deployment failures fixed, and the open `dividend_tracker` parse gap.
 - `plan.md` — AI dividend prediction → public Google Calendar (via Calendar MCP).
 - `alembic.md` — Alembic command cheatsheet.
 
