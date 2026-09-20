@@ -40,6 +40,15 @@ cross-references. Read them as:
 - `2026-09-15-trace-console.md` — hidden divreact page streaming a live source-tagged
   pipeline trace (you→fastapi→agent→mcp); architecture, shared-`TRACE_SECRET` auth,
   the three deployment failures fixed, and the open `dividend_tracker` parse gap.
+- `2026-09-20-two-agent-split.md` — three-agent map grounded in the current divcore
+  code: **Agent 0** predict+publish (layered pipeline, already built) and **Agent 1**
+  declared resolution (shared 3-tier substrate in `age_signals`, already built) →
+  **Graph**; **Agent 2** analyze-on-click → **Swarm** (the real upgrade). Declared
+  number stays ground truth that 0 and 2 consume, never invent.
+- `2026-09-20-biz-flow.md` — end-to-end user journey (search → predict → click row)
+  mapped to the three agents, grounded in current divcore code: surfaces, per-flow
+  steps, what persists where (calendar on predict, Postgres only on a Trades tick),
+  and the trigger map.
 - `plan.md` — AI dividend prediction → public Google Calendar (via Calendar MCP).
 - `alembic.md` — Alembic command cheatsheet.
 
