@@ -51,6 +51,10 @@ cross-references. Read them as:
   mapped to the three agents, grounded in current divcore code: surfaces, per-flow
   steps, what persists where (calendar on predict, Postgres only on a Trades tick),
   and the trigger map.
+- `2026-09-20-click-analyze-flow.md` — zoom into the click leg: what happens when a
+  user clicks one calendar row (DTM). Frontend reuses row-stamped facts (no Yahoo
+  re-fetch) → backend grounds a Gemini risk read on facts + signals, fires the
+  declared→prediction reconcile concurrently, refreshes the row on `corrected`.
 - `plan.md` — AI dividend prediction → public Google Calendar (via Calendar MCP).
 - `alembic.md` — Alembic command cheatsheet.
 
