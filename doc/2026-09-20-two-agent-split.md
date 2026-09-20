@@ -36,7 +36,7 @@ The migration target must match reality. Current files:
 | ├ layer 2 pattern | `agent/age_pattern.py::build_facts_and_pattern` | **deterministic, no LLM** — cadence, specials, gap/cut detection, N-step projection |
 | ├ layer 3 research | `agent/age_predictor.py::research_prediction` | **one LLM call** over facts+pattern+grounding+signals; declared-check first, never drops the layer |
 | ├ forward rate | `service/ser_forward_rate.py`, `_forward_from_facts` | **deterministic** forward div/yield; lazy same-day refresh + GCal-props cache |
-| └ calendar | `_plan_events` (rank: confirmed<estimate<prediction) + `_publish_all` | one all-day event per ex-date, upserted; `reconcile_declared` overwrites prediction with declared fact |
+| └ calendar | `_plan_events` (rank: scheduled<confirmed<estimate<prediction) + `_publish_all` | one timed event (08:00–09:00 in `CALENDAR_TZ`) per ex-date, upserted; `reconcile_declared` overwrites prediction with declared fact. Yahoo's `nextExDate`/`nextAmount` land as a `_RANK_SCHEDULED` (-1) 1%-confidence anchor when higher layers withhold |
 | **Agent 1 — declared resolution** | `agent/age_signals.py::gather_dividend_signals` | **shared substrate, 3 tiers** (below) + `ser_div_reconcile.reconcile_declared` |
 | **Agent 2 — analyze on click** | `service/ser_div_analyze.py::analyze_dividend` | **single LLM call**, 2-layer prompt (FACT check + LEADING read), grounded, reconcile concurrently |
 
@@ -95,17 +95,18 @@ research_prediction                     ← ONE LLM call, declared-check first,
    │  (Layer 3, grounded + signals)         degrades to pattern, never dropped
    ├──────────────▶ ser_forward_rate    ← deterministic forward div/yield
    ▼
-_plan_events (rank: confirmed<estimate<prediction)
+_plan_events (rank: scheduled<confirmed<estimate<prediction)
    ▼
 _publish_all → GCal upsert  ──▶ reconcile_declared (declared fact overwrites prediction)
 ```
 
 Migration notes, so the finished behavior is preserved:
 
-- **`divstatus` stays `Confirmed | Prediction` only** — the internal
-  confirmed/estimate/prediction *rank* is for date-collision precedence, it is not
-  a third public status. (Matches the standing "status is a stored attribute, no
-  mapping layer" rule.)
+- **`divstatus` stays `Declared | Prediction` only** — renamed from `Confirmed`
+  (`gcal_api` normalizes legacy values on read; migration `b3c7d8e9f0a1` rewrites
+  DB rows). The internal scheduled/confirmed/estimate/prediction *rank* is for
+  date-collision precedence, it is not a public status. (Matches the standing
+  "status is a stored attribute, no mapping layer" rule.)
 - **Never drops a layer.** `research_prediction` falls back to the pattern's next
   projection as a LOW-confidence prediction on any LLM/parse failure — this is the
   same no-dead-end guarantee the 09-09 doc specifies, already implemented.
@@ -190,9 +191,13 @@ What the refactor has to preserve (the reasons it's not trivial):
 - **`reconcile_declared` stays the write step**, now a graph node rather than a
   post-publish / concurrent call. Behavior (declared fact overwrites the prediction
   row on its true date) is unchanged.
-- **The open `dividend_tracker` parse gap** (`2026-09-15-trace-console.md`) is a tier-2
+- **The `dividend_tracker` parse gap** (`2026-09-15-trace-console.md`) is a tier-2
   node bug and should be fixed *as part of* this promote, not before — fixing it in
-  place first would just be re-touched by the extraction.
+  place first would just be re-touched by the extraction. **Update (2026-09-20):
+  `divmcp/tools/dividend.py` now adds the TSX/exchange URL mapping this gap was
+  about; likely already addressed at the MCP layer — verify with a live `CNQ.TO`
+  trace (see the trace-console doc's 2026-09-20 update) before assuming it still
+  needs work here.**
 
 Payoff: one auditable resolve DAG, reused by Agents 0 and 2, with an explicit
 short-circuit and provenance — instead of a declared number that materializes as a

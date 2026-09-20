@@ -109,3 +109,14 @@ deterministic (from the tool), never LLM-narrated**; the LLM's job is the *leadi
 read, not the declared fact. The deterministic path is silently empty and the LLM is
 filling the gap. Worth a `divmcp/tools/dividend.py` investigation (TSX ticker →
 dividendhistory.org URL mapping / parsing). Tracked here, not yet fixed.
+
+**Update (2026-09-20): likely addressed — verify before closing.** `divmcp` now
+ships `divmcp/tools/dividend.py` (the `dividend_tracker` tool) with explicit
+exchange-suffix → path mapping (`.TO → /payout/TSX/`, plus `.V`/`.NE`/`.CN`) and a
+`<table id="dividend-table">` declared-row parse — exactly the missing TSX URL
+mapping. Not yet confirmed end-to-end: re-run the `CNQ.TO` trace and check
+`dividend_tracker` returns a parsed declared row (not an LLM fallback). If it does,
+move this from "open" to "closed" and update `2026-09-20-two-agent-split.md`'s
+tier-2 note. (Note: `divcore`'s `age_signals._dividend_tracker` /
+`_parse_dividend_history` is a separate copy of this parse — confirm it too, or
+that the divcore path defers to the MCP tool.)

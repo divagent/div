@@ -15,7 +15,9 @@ B:\div\
 │                (Nasdaq Trader, SEC EDGAR, Polygon). strands-agents pinned;
 │                intended future home of the Strands agent (no agent logic yet)
 ├─ divmcp\     ← MCP server (FastMCP, stateless streamable-HTTP at /mcp):
-│                web_search (Tavily) + fetch_url (httpx+trafilatura), fail-soft
+│                web_search (Tavily) + fetch_url (httpx+trafilatura) +
+│                dividend_tracker (deterministic dividendhistory.org parse,
+│                incl. TSX/other-exchange URL mapping), all fail-soft
 └─ divreact\   ← Vite/React frontend + Cloudflare worker + Netlify;
                  client-side Yahoo facts, calls divcore, public GCal subscribe link
 ```
