@@ -2,15 +2,13 @@
     "files.exclude": {
         "**/__pycache__": true,
 		"**/__*__": true,
-        ".venv": true,
-        "v12": true,
-        ".vscode": true,
-        "node_modules": true,
-        ".angular": true,
+        "**/.venv": true,
+        "**/.vscode": true,
+        "**/node_modules": true,
         "e2e": true,
         "LICENSE": true,
         ".eslintrc.cjs": true,
-        "desktop.ini": true
+        "**/desktop.ini": true
     },
     "workbench.tree.indent": 28,
     "git.postCommitCommand": "push",
@@ -18,6 +16,7 @@
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
     "json.format.keepLines": false,
-    "python-envs.defaultEnvManager": "ms-python.python:.venv",
-    "python-envs.pythonProjects": []
+    "python-envs.defaultEnvManager": "ms-python.python:venv",
+    "python-envs.pythonProjects": [],
+
 }
