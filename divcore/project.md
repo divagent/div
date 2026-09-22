@@ -1,0 +1,2 @@
+Frontend: /divreact
+Backend: /divcore

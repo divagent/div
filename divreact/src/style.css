@@ -1,0 +1,1096 @@
+:root {
+    background: #f6f7f8;
+    color: #1f2933;
+    font-family: Arial, Helvetica, ui-sans-serif, system-ui, sans-serif;
+    font-synthesis: none;
+    font-size: 16px;
+    line-height: 1.4;
+    text-rendering: optimizeLegibility;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+}
+
+button,
+input,
+select {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+a {
+    color: inherit;
+}
+
+b,
+strong {
+    font-weight: 400;
+}
+
+.app-shell {
+    background: var(--bg);
+    min-height: 100vh;
+    padding-bottom: 32px;
+}
+
+.top-rail,
+.workspace-grid,
+.notice {
+    margin-inline: auto;
+    max-width: 1420px;
+    width: calc(100% - clamp(32px, 7vw, 96px));
+}
+
+.top-rail {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    padding: 24px 0 18px;
+}
+
+.brand-lockup {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+}
+
+.brand-lockup img {
+    height: 120px;
+    object-fit: contain;
+    width: 120px;
+}
+
+.brand-lockup strong {
+    color: var(--text);
+    display: block;
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.brand-lockup span,
+.table-header p,
+.panel-heading p,
+.side-panel p {
+    color: var(--muted);
+}
+
+.brand-lockup span {
+    display: block;
+    font-size: 13px;
+    line-height: 1.25;
+    margin-top: 0;
+}
+
+.header-actions {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+}
+
+.ghost-button,
+.primary-button,
+.pagination button,
+.close-button {
+    align-items: center;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    gap: 8px;
+    height: 38px;
+    justify-content: center;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.ghost-button {
+    background: #fff;
+    border: 1px solid var(--ghost);
+    color: var(--text);
+}
+
+.primary-button {
+    background: var(--brand-dark);
+    border: 1px solid var(--brand-dark);
+    color: #fff;
+    font-weight: 400;
+}
+
+.primary-button.full {
+    width: 100%;
+}
+
+.primary-button.icon-only {
+    flex: 0 0 40px;
+    height: 40px;
+    padding: 0;
+}
+
+.auth-button {
+    min-width: 92px;
+}
+
+.eyebrow {
+    color: var(--brand-dark);
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+}
+
+h1,
+h2 {
+    color: var(--text);
+    line-height: 1.15;
+    margin: 0;
+}
+
+h1 {
+    font-size: clamp(36px, 4vw, 52px);
+    font-weight: 400;
+    letter-spacing: 0;
+    max-width: 900px;
+}
+
+h2 {
+    font-size: 32px;
+    font-weight: 400;
+}
+
+.ai-query-row {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid var(--ghost);
+    border-radius: var(--radius-md);
+    color: var(--faint);
+    display: flex;
+    gap: 10px;
+}
+
+.ai-query-row input {
+    background: transparent;
+    border: 0;
+    color: var(--text);
+    min-width: 0;
+    outline: 0;
+    width: 100%;
+}
+
+.metric {
+    background: #fff;
+    border: 1px solid var(--ghost);
+    border-radius: var(--radius-md);
+    min-height: 104px;
+    padding: 18px;
+}
+
+.metric-icon {
+    align-items: center;
+    background: var(--section);
+    border-radius: var(--radius-sm);
+    color: var(--brand-dark);
+    display: inline-flex;
+    height: 36px;
+    justify-content: center;
+    margin-bottom: 14px;
+    width: 36px;
+}
+
+.metric span:not(.metric-icon) {
+    color: var(--muted);
+    display: block;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.metric strong {
+    color: var(--text);
+    display: block;
+    font-size: clamp(22px, 2.5vw, 30px);
+    font-weight: 400;
+    line-height: 1.05;
+}
+
+.notice {
+    background: var(--error-bg);
+    border: 1px solid rgba(139, 58, 46, 0.18);
+    border-radius: var(--radius-md);
+    color: var(--error-text);
+    margin-top: 14px;
+    padding: 11px 14px;
+}
+
+.workspace-grid {
+    align-items: start;
+    display: grid;
+    gap: 20px;
+    /* Fill the full width edge-to-edge (no outer margins): main column caps near
+       the table's width so its empty band stays small, and the side pane (1fr)
+       stretches to absorb the rest. */
+    grid-template-columns: minmax(0, 840px) minmax(360px, 1fr);
+    margin-top: 16px;
+}
+
+.main-stack {
+    display: grid;
+    gap: 20px;
+    min-width: 0;
+}
+
+.ai-panel,
+.table-panel,
+.side-panel {
+    background: #fff;
+    border: 1px solid var(--ghost);
+    border-radius: var(--radius-md);
+    min-width: 0;
+}
+
+.tab-strip {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 12px;
+}
+
+.tab-strip .tab {
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+    padding: 8px 14px;
+    margin-bottom: -1px;
+}
+
+.tab-strip .tab:hover {
+    color: var(--text);
+}
+
+.tab-strip .tab.is-active {
+    color: var(--brand-dark);
+    border-bottom-color: var(--brand-dark);
+}
+
+.ai-panel {
+    padding: 18px;
+}
+
+.panel-heading,
+.table-header {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.section-title {
+    align-items: center;
+    display: flex;
+    gap: 14px;
+}
+
+.section-title>svg {
+    background: var(--section);
+    border-radius: var(--radius-md);
+    color: var(--muted);
+    flex: 0 0 auto;
+    height: 38px;
+    padding: 9px;
+    width: 38px;
+}
+
+.section-title h2 {
+    font-size: 32px;
+    font-weight: 400;
+}
+
+.panel-heading p,
+.table-header p {
+    font-size: 12px;
+    line-height: 1.35;
+    margin: 4px 0 0;
+}
+
+.live-pill {
+    background: var(--section);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 400;
+    padding: 5px 9px;
+}
+
+.preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0 12px;
+}
+
+.ai-composer {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9)),
+        var(--card);
+    border: 1px solid rgba(242, 133, 0, 0.42);
+    border-radius: 28px;
+    box-shadow:
+        0 24px 60px rgba(144, 77, 0, 0.16),
+        0 0 0 7px rgba(242, 133, 0, 0.07);
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 92px;
+    min-width: 0;
+    padding: 18px 18px 18px 24px;
+}
+
+.ai-composer:focus-within {
+    border-color: rgba(242, 133, 0, 0.72);
+    box-shadow:
+        0 28px 70px rgba(144, 77, 0, 0.2),
+        0 0 0 8px rgba(242, 133, 0, 0.11);
+}
+
+.ai-composer input {
+    align-self: center;
+    background: transparent;
+    border: 0;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.2;
+    min-width: 0;
+    outline: 0;
+    width: 100%;
+}
+
+.ai-composer input.placeholder-prompt {
+    color: var(--faint);
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.composer-actions {
+    align-items: center;
+    align-self: stretch;
+    color: var(--brand);
+    display: flex;
+    gap: 12px;
+}
+
+.composer-actions .icon-only {
+    border-radius: 50%;
+    flex-basis: 54px;
+    height: 54px;
+    width: 54px;
+}
+
+.preset-row button,
+.watchlist button,
+.calendar-links a {
+    background: var(--section);
+    border: 1px solid var(--ghost);
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 400;
+    padding: 8px 10px;
+    text-decoration: none;
+}
+
+.preset-row button {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    min-height: 44px;
+    text-align: left;
+}
+
+.preset-row button svg {
+    flex: 0 0 auto;
+}
+
+.preset-row .featured-preset {
+    background:
+        linear-gradient(135deg, rgba(242, 133, 0, 0.18), rgba(255, 255, 255, 0.92)),
+        var(--card);
+    border-color: rgba(242, 133, 0, 0.46);
+    box-shadow: 0 14px 28px rgba(144, 77, 0, 0.12);
+    color: var(--brand-text);
+    font-size: 15px;
+    min-height: 64px;
+    padding: 14px 16px;
+}
+
+.preset-row .featured-preset svg {
+    background: var(--grad-primary);
+    border-radius: 50%;
+    color: #fff;
+    height: 36px;
+    padding: 8px;
+    width: 36px;
+}
+
+.ai-output {
+    background: rgba(28, 28, 25, 0.92);
+    border-radius: var(--radius-md);
+    color: #fff8ed;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 0;
+    min-height: 132px;
+    overflow: auto;
+    overflow-wrap: anywhere;
+    padding: 16px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.ai-output-center {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    white-space: normal;
+}
+
+.ticker-profile {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    display: grid;
+    gap: 16px;
+    min-height: 132px;
+    padding: 18px;
+}
+
+.ticker-profile-head {
+    align-items: flex-start;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+}
+
+.ticker-profile-head h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.ticker-sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin: 4px 0 0;
+}
+
+.ticker-price {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+}
+
+.ticker-price-value {
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.ticker-price-label {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.ticker-stats {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ticker-stat {
+    background: var(--section);
+    border: 1px solid var(--ghost);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+}
+
+.ticker-stat-value {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.ticker-stat-label {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.ticker-section-label {
+    color: var(--muted);
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.ticker-next {
+    align-items: baseline;
+    border-top: 1px solid var(--divider);
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    padding-top: 14px;
+}
+
+.ticker-muted {
+    color: var(--faint);
+}
+
+.ticker-history ul {
+    display: grid;
+    gap: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.ticker-history li {
+    border-bottom: 1px solid var(--divider);
+    display: flex;
+    font-size: 14px;
+    justify-content: space-between;
+    padding: 8px 0;
+}
+
+.ticker-history li:last-child {
+    border-bottom: none;
+}
+
+.table-header {
+    border-bottom: 1px solid var(--divider);
+    padding: 22px 24px 18px;
+}
+
+.table-header h2 {
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1.15;
+}
+
+.table-header label {
+    align-items: center;
+    background: var(--section);
+    border: 1px solid var(--ghost);
+    border-radius: 0;
+    color: var(--muted);
+    display: inline-flex;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 200;
+    height: 38px;
+    padding: 0 12px;
+}
+
+.table-header select {
+    background: transparent;
+    border: 0;
+    color: var(--text);
+    font-weight: 400;
+    outline: 0;
+}
+
+/* The table fills the panel, so this wrapper just spans full width; the header's
+   right-aligned actions (e.g. the "Hidden off" toggle) then align with the
+   table's right edge naturally. */
+.table-fit {
+    width: 100%;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+/* Idle right-pane "Stock market today" briefing: an hourly AI market wrap —
+   headline, desk byline + timestamp, real mover chips, and a narrative paragraph. */
+.market-brief {
+    display: grid;
+    gap: 8px;
+}
+
+.market-brief-headline {
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 2px 0 0;
+}
+
+.market-brief-byline {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
+    margin: 0;
+}
+
+.market-brief-body {
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 4px 0 0;
+}
+
+/* Mover row: compact chips with a symbol and its real day change, tabular figures. */
+.mover-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    list-style: none;
+    margin: 4px 0 2px;
+    padding: 0;
+}
+
+.mover-chip {
+    align-items: center;
+    background: var(--section);
+    border: 1px solid var(--ghost);
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    gap: 6px;
+    padding: 4px 8px;
+}
+
+.mover-symbol {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.mover-change {
+    align-items: center;
+    display: inline-flex;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    gap: 2px;
+}
+
+table {
+    border-collapse: collapse;
+    min-width: 980px;
+    width: 100%;
+}
+
+th,
+td {
+    border-bottom: 1px solid var(--line);
+    padding: 14px 24px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+th {
+    background: var(--section);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 550;
+    letter-spacing: normal;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+td {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.35;
+}
+
+th button {
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    padding: 0;
+    text-transform: inherit;
+}
+
+tbody tr {
+    transition:
+        background 0.16s ease,
+        box-shadow 0.16s ease;
+}
+
+tbody tr:hover {
+    background: rgba(242, 133, 0, 0.06);
+}
+
+/* Shared by the Trades and Upcoming dividends tables: many columns in a tight
+   width — compact padding + smaller type. width:100% + min-width:0 lets the
+   table stretch to fill its panel (no empty band after the last column) while
+   still being allowed to shrink below the base 980px floor on narrow screens. */
+.data-table {
+    min-width: 0;
+    width: 100%;
+}
+
+.data-table th,
+.data-table td {
+    padding: 10px 12px;
+    font-size: 12px;
+}
+
+.data-table th {
+    letter-spacing: 0;
+}
+
+.data-table input[type="date"] {
+    min-width: 96px;
+}
+
+.data-table input[type="number"] {
+    min-width: 56px;
+}
+
+.symbol-cell {
+    align-items: center;
+    display: flex;
+    gap: 0;
+}
+
+.symbol-cell strong {
+    color: #0092bc;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.company-cell {
+    color: #6e6e83;
+}
+
+.yield-pill {
+    background: var(--section);
+    border-radius: 0;
+    color: var(--muted);
+    display: inline-flex;
+    font-size: 14px;
+    font-weight: 400;
+    min-width: 70px;
+    padding: 3px 9px;
+}
+
+.yield-pill.high {
+    background: rgba(0, 100, 150, 0.11);
+    color: var(--success);
+}
+
+.pagination {
+    align-items: center;
+    color: var(--muted);
+    display: flex;
+    font-size: 14px;
+    font-weight: 400;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 16px 24px;
+}
+
+.pagination button,
+.close-button {
+    background: var(--card);
+    border: 1px solid var(--ghost);
+    color: var(--text);
+    height: 36px;
+    padding: 0;
+    width: 36px;
+}
+
+.state-panel {
+    align-items: center;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    justify-content: center;
+    min-height: 320px;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.side-panel {
+    display: grid;
+    gap: 20px;
+    padding: 22px;
+    position: sticky;
+    top: 16px;
+}
+
+.agent-analysis {
+    background: var(--section);
+    border: 1px solid rgba(242, 133, 0, 0.42);
+    border-radius: var(--radius-md);
+    display: grid;
+    gap: 6px;
+    padding: 16px;
+    font-size: 13px;
+}
+
+.agent-analysis h3 {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.agent-analysis-body p {
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.agent-analysis-head {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+}
+
+.agent-analysis-close {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--muted);
+    display: inline-flex;
+    padding: 2px;
+}
+
+.agent-analysis-body {
+    border-top: 1px solid var(--divider);
+    margin-top: 8px;
+    padding-top: 10px;
+}
+
+.agent-analysis-label {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+}
+
+.agent-analysis-placeholder {
+    color: var(--faint);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.watchlist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.watchlist button {
+    color: var(--brand-text);
+}
+
+.insight-card {
+    background: var(--grad-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 18px 30px rgba(144, 77, 0, 0.16);
+    color: #fff;
+    padding: 22px;
+}
+
+.insight-card span {
+    display: block;
+    font-size: 14px;
+    font-weight: 400;
+    opacity: 0.82;
+    text-transform: uppercase;
+}
+
+.insight-card strong {
+    display: block;
+    font-size: 48px;
+    font-weight: 400;
+    line-height: 1;
+    margin-top: 8px;
+}
+
+.calendar-links {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.drawer-backdrop {
+    background: rgba(28, 28, 25, 0.42);
+    inset: 0;
+    position: fixed;
+    z-index: 20;
+}
+
+.drawer {
+    background: var(--bg);
+    box-shadow: var(--shadow-elevated);
+    height: 100%;
+    margin-left: auto;
+    max-width: 480px;
+    overflow-y: auto;
+    padding: 32px;
+    position: relative;
+    width: min(100%, 480px);
+}
+
+.close-button {
+    position: absolute;
+    right: 18px;
+    top: 18px;
+}
+
+.drawer h2 {
+    font-size: 48px;
+    font-weight: 400;
+    margin-bottom: 18px;
+    padding-right: 44px;
+}
+
+.drawer h2 span {
+    color: var(--muted);
+    display: block;
+    font-size: 18px;
+    font-weight: 400;
+    margin-top: 5px;
+}
+
+.drawer-stats {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 18px 0;
+}
+
+.drawer-stats .metric {
+    min-height: 122px;
+}
+
+.date-list {
+    border-top: 1px solid var(--divider);
+    margin: 0;
+}
+
+.date-list div {
+    border-bottom: 1px solid var(--divider);
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+    padding: 16px 0;
+}
+
+.date-list dt {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.date-list dd {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 400;
+    margin: 0;
+    text-align: right;
+}
+
+@media (max-width: 1120px) {
+    .workspace-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .side-panel {
+        position: static;
+    }
+}
+
+@media (max-width: 740px) {
+
+    .top-rail,
+    .workspace-grid,
+    .notice {
+        width: calc(100% - 28px);
+    }
+
+    .top-rail,
+    .header-actions,
+    .panel-heading,
+    .table-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .drawer-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .ai-composer {
+        align-items: stretch;
+        grid-template-columns: 1fr;
+        flex-direction: column;
+        padding: 16px;
+    }
+
+    .ai-composer input {
+        font-size: 17px;
+    }
+
+    .composer-actions {
+        justify-content: space-between;
+    }
+
+    .composer-actions .icon-only,
+    .primary-button.icon-only {
+        width: 100%;
+    }
+
+    .preset-row button {
+        flex: 1 1 100%;
+    }
+
+    th,
+    td {
+        padding: 12px;
+    }
+}

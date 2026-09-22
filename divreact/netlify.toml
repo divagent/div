@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# SPA fallback: any route not matched by a function or static file serves the app.
+# The /yahoo/* function path takes precedence over this rewrite.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

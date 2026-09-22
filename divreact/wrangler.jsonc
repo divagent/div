@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "div",
+  "compatibility_date": "2025-09-01",
+  "main": "worker/index.ts",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // SPA: unmatched routes serve index.html so client-side routing works.
+    "not_found_handling": "single-page-application",
+    // Run the Worker for EVERY request. Without this the SPA fallback would
+    // swallow /yahoo/* and return index.html (HTML parsed as JSON => the error).
+    // The Worker proxies /yahoo/* and delegates all other paths to env.ASSETS,
+    // which still applies the single-page-application fallback above.
+    "run_worker_first": true
+  }
+}

@@ -1,0 +1,24 @@
+[project]
+name = "divmcp"
+version = "0.1.0"
+description = "The dividend agent's reach: an HTTP MCP server exposing generic web search + semantic page fetch (and, later, leading-signal tools)."
+requires-python = ">=3.12"
+dependencies = [
+    # Official Model Context Protocol SDK (FastMCP + streamable-HTTP transport).
+    "mcp>=1.9.0",
+    # ASGI host so the same app deploys to FastAPI Cloud; /health + mounted MCP.
+    "fastapi[standard]>=0.115.0",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.5.0",
+    # Generic web search — the agent's "eyes" for discovering unnameable sources.
+    "tavily-python>=0.5.0",
+    # Reads a page's MAIN content the way a person would; robust to HTML changes.
+    "trafilatura>=2.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["divmcp"]

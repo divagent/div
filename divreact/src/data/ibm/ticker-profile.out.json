@@ -1,0 +1,33 @@
+{
+  "symbol": "IBM",
+  "companyName": "International Business Machines Corporation",
+  "industry": "Information Technology Services",
+  "exchange": "NYSE",
+  "currency": "USD",
+  "price": 235.59,
+  "pastYearDividends": [
+    {
+      "date": "2026-08-10",
+      "amount": 1.69
+    },
+    {
+      "date": "2026-05-08",
+      "amount": 1.69
+    },
+    {
+      "date": "2026-02-10",
+      "amount": 1.68
+    },
+    {
+      "date": "2025-11-10",
+      "amount": 1.68
+    }
+  ],
+  "ttmAmount": 6.74,
+  "paymentsPerYear": 4,
+  "trailingYield": 2.8609,
+  "forwardYield": 2.8694,
+  "forwardRate": 6.76,
+  "nextExDate": "2026-08-10",
+  "nextAmount": 1.69
+}

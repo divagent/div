@@ -1,0 +1,39 @@
+{
+  "_note": "What the frontend sends AFTER the fix (predict.ts now builds the facts body via buildPredictRequest). Live IBM numbers captured 2026-08-31 from localhost:5173 via the Vite Yahoo proxy. Compare against ai-query.contract.md — now matches.",
+  "_status": "FIXED — frontend now sends the full authoritative facts payload, not just the symbol.",
+
+  "actualRequestSentToBackend": {
+    "method": "POST",
+    "url": "{VITE_CORE_API}/div_agent/predict_dividend",
+    "headers": {
+      "Content-Type": "application/json",
+      "Authorization": "Basic <base64(adminUsername:adminPassword)>  (only when VITE_ADMIN_PASSWORD is set)"
+    },
+    "body": {
+      "symbol": "IBM",
+      "asOf": "2026-08-31",
+      "currency": "USD",
+      "facts": {
+        "price": 234.45,
+        "ttmAmount": 6.74,
+        "pastYearDividends": [
+          { "exDate": "2026-08-10", "amount": 1.69 },
+          { "exDate": "2026-05-08", "amount": 1.69 },
+          { "exDate": "2026-02-10", "amount": 1.68 },
+          { "exDate": "2025-11-10", "amount": 1.68 }
+        ]
+      },
+      "publishToCalendar": true
+    }
+  },
+
+  "_previousBrokenRequest": {
+    "_desc": "For reference — what it sent BEFORE the fix: only the symbol, no body.",
+    "method": "POST",
+    "url": "{VITE_CORE_API}/div_agent/predict_dividend?symbol=IBM",
+    "body": null
+  },
+
+  "_backendStillTodo": "Backend (B:/divcore) still on the old contract: r_div_agent.py reads ?symbol query, age_predictor.py re-derives history from RAG and returns a flat single-verdict shape. Needs the JSON body request model + 3-layer response (facts/pattern/research/calendar). Next per agreed sequencing (frontend first)."
+}
+
