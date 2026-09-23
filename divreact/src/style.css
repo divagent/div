@@ -774,9 +774,12 @@ tbody tr:hover {
 
 /* Tomorrow's ex-date row: last chance to buy in. Target the cells directly —
    the bare `td` rule above sets its own color, so a color on the <tr> won't
-   inherit down. */
-.data-table tbody tr.row-tomorrow td {
-    color: red;
+   inherit down. `!important` also wins over inline colors on inner spans
+   (e.g. the muted "/ price") so the whole line goes brand orange. */
+.data-table tbody tr.row-tomorrow td,
+.data-table tbody tr.row-tomorrow td span,
+.data-table tbody tr.row-tomorrow td strong {
+    color: var(--brand) !important;
     font-weight: 600;
 }
 
