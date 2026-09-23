@@ -772,6 +772,14 @@ tbody tr:hover {
     letter-spacing: 0;
 }
 
+/* Tomorrow's ex-date row: last chance to buy in. Target the cells directly —
+   the bare `td` rule above sets its own color, so a color on the <tr> won't
+   inherit down. */
+.data-table tbody tr.row-tomorrow td {
+    color: red;
+    font-weight: 600;
+}
+
 .data-table input[type="date"] {
     min-width: 96px;
 }

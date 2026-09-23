@@ -145,11 +145,10 @@ export function UpcomingCalendar({
                   <tr
                     key={key}
                     onClick={() => onSelect?.(item)}
+                    className={isTomorrow ? 'row-tomorrow' : undefined}
                     style={{
                       cursor: onSelect ? 'pointer' : undefined,
                       background: selectedKey === key ? 'rgba(242, 133, 0, 0.1)' : undefined,
-                      color: isTomorrow ? 'red' : undefined,
-                      fontWeight: isTomorrow ? 600 : undefined,
                       opacity: exPassed ? 0.45 : undefined,
                     }}
                   >
