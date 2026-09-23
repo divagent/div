@@ -778,7 +778,9 @@ tbody tr:hover {
    (e.g. the muted "/ price") so the whole line goes brand orange. */
 .data-table tbody tr.row-tomorrow td,
 .data-table tbody tr.row-tomorrow td span,
-.data-table tbody tr.row-tomorrow td strong {
+.data-table tbody tr.row-tomorrow td strong,
+.data-table tbody tr.row-tomorrow td button,
+.data-table tbody tr.row-tomorrow td a {
     color: var(--brand) !important;
     font-weight: 600;
 }
