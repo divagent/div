@@ -147,13 +147,9 @@ export function UpcomingCalendar({
                     onClick={() => onSelect?.(item)}
                     style={{
                       cursor: onSelect ? 'pointer' : undefined,
-                      background:
-                        selectedKey === key
-                          ? 'rgba(242, 133, 0, 0.1)'
-                          : isTomorrow
-                            ? 'rgba(242, 133, 0, 0.12)'
-                            : undefined,
-                      boxShadow: isTomorrow ? 'inset 3px 0 0 var(--brand, #f28500)' : undefined,
+                      background: selectedKey === key ? 'rgba(242, 133, 0, 0.1)' : undefined,
+                      color: isTomorrow ? 'var(--brand, #f28500)' : undefined,
+                      fontWeight: isTomorrow ? 600 : undefined,
                       opacity: exPassed ? 0.45 : undefined,
                     }}
                   >
