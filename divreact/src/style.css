@@ -785,6 +785,11 @@ tbody tr:hover {
     font-weight: 600;
 }
 
+/* The status pill's border is an inline color too — match it to the row. */
+.data-table tbody tr.row-tomorrow td span {
+    border-color: var(--brand) !important;
+}
+
 .data-table input[type="date"] {
     min-width: 96px;
 }
