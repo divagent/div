@@ -148,7 +148,7 @@ export function UpcomingCalendar({
                     style={{
                       cursor: onSelect ? 'pointer' : undefined,
                       background: selectedKey === key ? 'rgba(242, 133, 0, 0.1)' : undefined,
-                      color: isTomorrow ? 'var(--brand-dark)' : undefined,
+                      color: isTomorrow ? 'red' : undefined,
                       fontWeight: isTomorrow ? 600 : undefined,
                       opacity: exPassed ? 0.45 : undefined,
                     }}
