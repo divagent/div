@@ -128,6 +128,18 @@ export function TradesTable() {
     })
   }, [rows, showHidden])
 
+  // Column totals over the visible rows (nulls skipped).
+  const totals = useMemo(() => {
+    const sum = (pick: (r: TradeRow) => number | null) =>
+      visible.reduce((acc, r) => acc + (pick(r) ?? 0), 0)
+    return {
+      purchase: sum((r) => r.purchaseAmount),
+      sell: sum((r) => r.sellAmount),
+      dividend: sum((r) => r.dividendAmount),
+      profit: sum((r) => r.profit),
+    }
+  }, [visible])
+
   async function save(id: string, patch: TradePatch) {
     setSavingId(id)
     // Optimistic: reflect the edit immediately, reconcile with the server row
@@ -241,6 +253,26 @@ export function TradesTable() {
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr style={{ borderTop: '2px solid var(--line)', fontWeight: 600 }}>
+                <td>Total</td>
+                <td />
+                <td />
+                <td style={{ textAlign: 'right' }}>{formatCurrency(totals.purchase)}</td>
+                <td style={{ textAlign: 'right' }}>{formatCurrency(totals.sell)}</td>
+                <td style={{ textAlign: 'right' }}>{formatCurrency(totals.dividend)}</td>
+                <td
+                  style={{
+                    textAlign: 'right',
+                    color: totals.profit >= 0 ? 'var(--success)' : 'var(--error-text)',
+                  }}
+                >
+                  {formatCurrency(totals.profit)}
+                </td>
+                <td />
+                <td />
+              </tr>
+            </tfoot>
           </table>
         </div>
       ) : (
