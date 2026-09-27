@@ -140,8 +140,6 @@ export function TradesTable() {
     const sum = (pick: (r: TradeRow) => number | null) =>
       visible.reduce((acc, r) => acc + (pick(r) ?? 0), 0)
     return {
-      purchase: sum((r) => r.purchaseAmount),
-      sell: sum((r) => r.sellAmount),
       dividend: sum((r) => r.dividendAmount),
       profit: sum((r) => r.profit),
     }
@@ -311,8 +309,8 @@ export function TradesTable() {
                 <td>Total</td>
                 <td />
                 <td />
-                <td style={{ textAlign: 'right' }}>{formatCurrency(totals.purchase)}</td>
-                <td style={{ textAlign: 'right' }}>{formatCurrency(totals.sell)}</td>
+                <td />
+                <td />
                 <td style={{ textAlign: 'right' }}>{formatCurrency(totals.dividend)}</td>
                 <td
                   style={{
