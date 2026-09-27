@@ -486,81 +486,13 @@ async def _dividend_tracker(client: httpx.AsyncClient, ticker: str) -> Optional[
 
 
 # ---------------------------------------------------------------------------
-# Declaration resolver — extract the MOST RECENT declared dividend from the
-# gathered web text. This is the fallback for symbols the structured providers
-# (FMP/Finnhub) don't cover, e.g. TSX. The retrieved snippets often contain both
-# a stale amount and the freshly-announced one; a focused extraction pass reliably
-# picks the latest declaration instead of leaving it to the analysis prompt.
+# NOTE: there is deliberately NO LLM "declaration resolver" here. A declared
+# dividend is a fact and may only be sourced deterministically (FMP structured
+# feed, dividendhistory.org table). We removed the web-snippet LLM extraction
+# fallback because it could hallucinate/mis-scale an amount and stamp it as
+# "Declared" (it once produced a ÷10 figure). When no deterministic source has
+# the declaration we keep the estimate/prediction — a fact-check has no fallback.
 # ---------------------------------------------------------------------------
-
-_DECLARE_PROMPT = (
-    "You extract the single MOST RECENTLY DECLARED/ANNOUNCED dividend for a company "
-    "from web snippets. Snippets may contain STALE amounts from before a change — "
-    "choose the latest ANNOUNCED figure (look for words like 'declares', 'announced', "
-    "'board declared', 'resetting/cutting the dividend', SEC/press-release filings, or "
-    "a dividend tracker's 'next dividend'). Respond ONLY with a JSON object:\n"
-    "{\n"
-    '  "isDeclared": boolean,   // true only if a specific amount was actually announced\n'
-    '  "amount": number|null,   // per-share cash amount of that declared dividend\n'
-    '  "exDate": "YYYY-MM-DD"|null,\n'
-    '  "declarationDate": "YYYY-MM-DD"|null,\n'
-    '  "payDate": "YYYY-MM-DD"|null,\n'
-    '  "wasCut": boolean,       // true if it is a reduction vs. the prior dividend\n'
-    '  "priorAmount": number|null,\n'
-    '  "note": string           // <=12 words, e.g. "cut ~55% from 0.4184"\n'
-    "}\n"
-    "If no specific declared amount is present, set isDeclared=false and other fields null. "
-    "Never invent numbers not in the snippets."
-)
-
-
-async def _resolve_declared(
-    ticker: str, company: Optional[str], brief_text: str, *, trace_id: str
-) -> Optional[dict]:
-    """LLM pass over the gathered web text to pin the latest declared dividend."""
-    if not brief_text or brief_text == Signals.text:
-        return None
-    # Local import keeps the module importable without a configured LLM.
-    from app.adapters.gemini_chat import chat_completion_agent_with_model
-    import json
-
-    model_label = "unavailable"
-    try:
-        raw, model_label = await chat_completion_agent_with_model(
-            messages=[
-                {"role": "system", "content": _DECLARE_PROMPT},
-                {
-                    "role": "user",
-                    "content": (
-                        f"Company: {company or ticker} ({ticker}). Today: {date.today().isoformat()}.\n\n"
-                        f"SNIPPETS:\n{brief_text}"
-                    ),
-                },
-            ]
-        )
-        data = json.loads(raw)
-    except Exception as exc:
-        log_event(
-            "resolve_declared_failure",
-            trace_id=trace_id,
-            ticker=ticker,
-            model=model_label,
-            error=str(exc),
-        )
-        return None
-
-    if not data.get("isDeclared") or data.get("amount") is None:
-        return None
-    declared = {
-        "exDate": data.get("exDate"),
-        "amount": data.get("amount"),
-        "declarationDate": data.get("declarationDate"),
-        "payDate": data.get("payDate"),
-    }
-    note = data.get("note") or (
-        f"cut from {data.get('priorAmount')}" if data.get("wasCut") and data.get("priorAmount") else None
-    )
-    return {"declared": declared, "note": note}
 
 
 # ---------------------------------------------------------------------------
@@ -621,13 +553,13 @@ async def gather_dividend_signals(
         sig.text = "\n\n".join(text_blocks)
     sig.sources = sources
 
-    # If no structured provider gave us a declaration (e.g. TSX on FMP's free
-    # tier), extract it from the gathered web text so the agents anchor to fact.
-    if sig.declared is None:
-        resolved = await _resolve_declared(ticker, company_name, sig.text, trace_id=trace_id)
-        if resolved:
-            sig.declared = resolved["declared"]
-            sig.declared_note = resolved["note"]
+    # NO LLM FALLBACK for the declared dividend. "Declared" is a FACT and may only
+    # come from a deterministic/authoritative source (FMP's structured feed or the
+    # dividendhistory.org table). An LLM reading web snippets can hallucinate or
+    # mis-scale an amount (it once wrote a ÷10 figure and stamped it "Declared"),
+    # and a fact-check cannot have a guessing fallback. If no deterministic source
+    # carries the declaration, sig.declared stays None and the caller keeps the
+    # estimate/prediction — never a fabricated "Declared".
 
     log_event(
         "gather_dividend_signals",
