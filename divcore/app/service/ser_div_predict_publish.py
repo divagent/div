@@ -15,7 +15,7 @@ created only when the user adds a tick to the Trades tab (POST /div_trade/insert
 """
 
 import asyncio
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 
 from app.agent.age_pattern import build_facts_and_pattern
@@ -52,6 +52,36 @@ _ARROW = {"up": "↑", "down": "↓", "constant": "→"}
 
 def _fmt_amount(amount: Optional[float]) -> str:
     return f"${amount:.2f}" if amount is not None else "amount TBD"
+
+
+def _rolling_estimates(
+    anchor_ex_date: Optional[str],
+    anchor_amount: Optional[float],
+    pattern: PatternLayer,
+) -> list[dict]:
+    """Forward estimate series to publish alongside a declaration.
+
+    Steps the detected cadence forward from the DECLARED ex-date, holding the
+    declared amount flat, for the payments AFTER it — enough to cover ~1 year
+    (declared + paymentsPerYear-1 estimates ≈ paymentsPerYear payments). Returns
+    []` when the pattern can't support a projection (no cadence / sub-annual
+    coverage / no amount), which tells reconcile to KEEP the existing estimates.
+    """
+    step = pattern.medianIntervalDays
+    if not anchor_ex_date or not step or step <= 0 or pattern.paymentsPerYear < 2:
+        return []
+    base = anchor_amount if anchor_amount is not None else pattern.typicalAmount
+    if base is None:
+        return []
+    try:
+        cursor = date.fromisoformat(str(anchor_ex_date)[:10])
+    except ValueError:
+        return []
+    out: list[dict] = []
+    for _ in range(pattern.paymentsPerYear - 1):
+        cursor = cursor + timedelta(days=int(step))
+        out.append({"exDate": cursor.isoformat(), "amount": round(float(base), 4)})
+    return out
 
 
 def _plan_events(
@@ -279,11 +309,17 @@ async def predict_and_publish(
         # prediction. Reconcile AFTER publishing so the declared 'fact' overwrites
         # the prediction on its true date and supersedes any stale-dated row.
         if research.declared:
+            # Roll the forward estimate horizon off the declared date + cadence so
+            # the ~1-year runway is refreshed every time we declare (empty => keep
+            # the existing estimates untouched).
+            anchor_ex = research.declared.exDate or research.predictedNext.exDate
+            estimates = _rolling_estimates(anchor_ex, research.declared.amount, pattern)
             await reconcile_declared(
                 ticker,
                 research.declared.model_dump(),
                 note=research.declared.note,
                 fallback_ex_date=research.predictedNext.exDate,
+                estimates=estimates,
                 trace_id=trace_id,
             )
 
