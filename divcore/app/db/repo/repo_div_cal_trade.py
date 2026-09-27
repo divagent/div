@@ -28,6 +28,7 @@ EDITABLE_FIELDS = frozenset(
         "sell_date",
         "sell_amount",
         "dividend_amount",
+        "dividend_is_estimate",
         "hidden",
     }
 )

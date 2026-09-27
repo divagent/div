@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { EyeOff, Eye, Loader2, TriangleAlert, Wallet } from 'lucide-react'
 import { fetchTrades, patchTrade, type TradePatch, type TradeRow } from '../api/trades'
+import { fetchCloseBeforeExDate } from '../api/prices'
 import { formatCurrency } from '../utils/formatters'
 
 const STATUS_COLOR: Record<TradeRow['status'], string> = {
@@ -37,11 +38,15 @@ function EditCell({
   value,
   type,
   money = false,
+  estimate = false,
   onCommit,
 }: {
   value: string | number | null
   type: 'text' | 'number' | 'date'
   money?: boolean
+  // Renders the value in the brand "estimate" colour + italic, with a hint that
+  // it was auto-filled and can be overwritten with the real number.
+  estimate?: boolean
   onCommit: (raw: string) => void
 }) {
   const initial = value == null ? '' : String(value)
@@ -66,6 +71,7 @@ function EditCell({
       type={money ? 'text' : type}
       inputMode={money ? 'decimal' : undefined}
       value={display}
+      title={estimate ? 'Estimated from buy $ and the pre-ex-date close — type the actual amount to replace it' : undefined}
       step={type === 'number' ? '0.01' : undefined}
       onChange={(e) => setDraft(e.target.value)}
       onFocus={(e) => {
@@ -87,6 +93,7 @@ function EditCell({
         // stretching to fill the row (the cause of the sparse look).
         width: type === 'date' ? 104 : money || type === 'number' ? 74 : 120,
         textAlign: money || type === 'number' ? 'right' : 'left',
+        ...(estimate ? { color: 'var(--brand-dark)', fontStyle: 'italic' } : null),
       }}
     />
   )
@@ -154,6 +161,52 @@ export function TradesTable() {
       setSavingId(null)
     }
   }
+
+  // Auto-fill an estimated Dividend $ for rows that have a per-share amount and a
+  // buy $ but no dividend recorded yet. Shares are implied by buy $ ÷ the close
+  // one trading day before the ex-date; estimate = shares × per-share amount. The
+  // value is saved (so Profit picks it up) and flagged so the cell shows it in the
+  // estimate colour until the user types the real number. Runs once per row.
+  const estimateTried = useRef<Set<string>>(new Set())
+  const estimateAbort = useRef<AbortController | null>(null)
+  // One controller for the component's lifetime — a per-row save mutates `rows`
+  // and re-runs the effect below, which must NOT cancel its sibling estimates.
+  useEffect(() => {
+    estimateAbort.current = new AbortController()
+    return () => estimateAbort.current?.abort()
+  }, [])
+
+  useEffect(() => {
+    if (isLoading) return
+
+    const needsEstimate = (r: TradeRow) =>
+      !r.dividendIsEstimate &&
+      (r.dividendAmount == null || r.dividendAmount === 0) &&
+      r.amount != null && r.amount !== 0 &&
+      r.purchaseAmount != null && r.purchaseAmount !== 0 &&
+      !!r.exDate
+
+    for (const r of rows) {
+      if (!needsEstimate(r) || estimateTried.current.has(r.id)) continue
+      estimateTried.current.add(r.id)
+      void (async () => {
+        try {
+          const close = await fetchCloseBeforeExDate(r.ticker, r.exDate!, estimateAbort.current?.signal)
+          if (close == null) {
+            estimateTried.current.delete(r.id) // no price → let a later refetch retry
+            return
+          }
+          const shares = r.purchaseAmount! / close
+          const estimate = Math.round(shares * r.amount! * 100) / 100
+          if (estimate > 0) await save(r.id, { dividendAmount: estimate, dividendIsEstimate: true })
+        } catch {
+          estimateTried.current.delete(r.id)
+        }
+      })()
+    }
+    // save/needsEstimate are stable enough for this one-shot-per-row fill.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, isLoading])
 
   // Text "" -> null; numeric "" -> null, else Number.
   const asNum = (raw: string) => (raw.trim() === '' ? null : Number(raw))
@@ -224,7 +277,7 @@ export function TradesTable() {
                   <td style={{ textAlign: 'right' }}>{r.amount == null ? '—' : formatCurrency(r.amount)}</td>
                   <td><EditCell value={r.purchaseAmount} type="number" money onCommit={(v) => save(r.id, { purchaseAmount: asNum(v) })} /></td>
                   <td><EditCell value={r.sellAmount} type="number" money onCommit={(v) => save(r.id, { sellAmount: asNum(v) })} /></td>
-                  <td><EditCell value={r.dividendAmount} type="number" money onCommit={(v) => save(r.id, { dividendAmount: asNum(v) })} /></td>
+                  <td><EditCell value={r.dividendAmount} type="number" money estimate={r.dividendIsEstimate} onCommit={(v) => save(r.id, { dividendAmount: asNum(v), dividendIsEstimate: false })} /></td>
                   <td
                     style={{
                       fontWeight: 600,

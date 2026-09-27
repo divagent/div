@@ -35,6 +35,9 @@ class TradeRow(BaseModel):
     sellDate: Optional[str] = None
     sellAmount: Optional[float] = None
     dividendAmount: Optional[float] = None
+    # True when dividendAmount was auto-filled from an estimate rather than typed
+    # by the user; drives the "estimate" colour in the Trades tab.
+    dividendIsEstimate: bool = False
     # Derived, never stored: proceeds - cost + dividends. Null while the position
     # is still open (not sold) or before a purchase is recorded.
     profit: Optional[float] = None
@@ -74,6 +77,7 @@ class TradeRow(BaseModel):
             sellDate=_iso(row.get("sell_date")),
             sellAmount=sell,
             dividendAmount=dividend,
+            dividendIsEstimate=bool(row.get("dividend_is_estimate")),
             profit=profit,
             status=status,  # type: ignore[arg-type]
             hidden=bool(row.get("hidden")),
@@ -112,6 +116,9 @@ class TradeUpdate(BaseModel):
     sellDate: Optional[str] = None
     sellAmount: Optional[float] = None
     dividendAmount: Optional[float] = None
+    # Set by the client alongside an auto-estimated dividendAmount; the client
+    # sends False when the user types a real number, so the estimate colour clears.
+    dividendIsEstimate: Optional[bool] = None
     hidden: Optional[bool] = None
 
     def to_columns(self) -> dict[str, Any]:
@@ -131,6 +138,7 @@ class TradeUpdate(BaseModel):
             "sellDate": "sell_date",
             "sellAmount": "sell_amount",
             "dividendAmount": "dividend_amount",
+            "dividendIsEstimate": "dividend_is_estimate",
             "hidden": "hidden",
         }
         date_fields = {"exDate", "paymentDate", "purchaseDate", "sellDate"}

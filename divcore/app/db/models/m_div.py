@@ -62,6 +62,10 @@ class DivCalTrade(Base, BaseMixin):
     sell_date:       Mapped[date] = mapped_column(Date, nullable=True)
     sell_amount:     Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=True)
     dividend_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=True)
+    # True when dividend_amount was auto-filled from an estimate (shares implied by
+    # buy $ ÷ pre-ex close × per-share amount), not entered by the user. Cleared as
+    # soon as the user edits the dividend cell.
+    dividend_is_estimate: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     hidden:          Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 
     __table_args__ = (

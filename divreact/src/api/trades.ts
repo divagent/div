@@ -22,6 +22,9 @@ export type TradeRow = {
   sellDate: string | null
   sellAmount: number | null
   dividendAmount: number | null
+  // True when dividendAmount was auto-filled from an estimate (buy $ ÷ pre-ex
+  // close × per-share amount), not typed by the user. Drives the estimate colour.
+  dividendIsEstimate: boolean
   // Derived server-side: proceeds - cost + dividends, once closed.
   profit: number | null
   status: TradeStatus
@@ -41,6 +44,7 @@ export type TradePatch = Partial<
     | 'sellDate'
     | 'sellAmount'
     | 'dividendAmount'
+    | 'dividendIsEstimate'
     | 'hidden'
   >
 >
