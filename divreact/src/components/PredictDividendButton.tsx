@@ -128,7 +128,7 @@ export function PredictDividendButton({
 
 function PredictionLayers({ result }: { result: PredictResponse }) {
   const { facts, pattern, research, calendar } = result
-  const confidencePct = Math.round((research?.confidence ?? 0) * 100)
+  const confidencePct = research?.confidence != null ? Math.round(research.confidence * 100) : null
   const next = research?.predictedNext
 
   return (
@@ -169,7 +169,9 @@ function PredictionLayers({ result }: { result: PredictResponse }) {
       <div style={layerCard}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', minWidth: 0 }}>
           <span style={layerLabel}>Research · prediction</span>
-          <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}>{confidencePct}% confidence</span>
+          <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}>
+            {confidencePct != null ? `${confidencePct}% confidence` : 'confidence not scored'}
+          </span>
         </div>
         {next ? (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>

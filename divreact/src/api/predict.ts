@@ -62,7 +62,7 @@ export type ResearchSource = {
 
 export type ResearchLayer = {
   willMaintainPattern: boolean
-  confidence: number // 0..1
+  confidence: number | null // 0..1, or null when not scored (research unavailable)
   predictedNext: { exDate: string; amount: number | null; direction: PredictDirection }
   reasoning: string
   sources: ResearchSource[]

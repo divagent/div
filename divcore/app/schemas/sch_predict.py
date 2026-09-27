@@ -95,7 +95,9 @@ class DeclaredDividend(BaseModel):
 
 class ResearchLayer(BaseModel):
     willMaintainPattern: bool = True
-    confidence: float = Field(0.0, ge=0.0, le=1.0)
+    # A computed forecast probability, or None when there is no basis to score one
+    # (e.g. research unavailable → pattern-only). Never a placeholder constant.
+    confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
     predictedNext: PredictedNext = Field(default_factory=PredictedNext)
     reasoning: str = ""
     sources: List[ResearchSource] = Field(default_factory=list)

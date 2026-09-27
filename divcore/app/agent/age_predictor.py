@@ -7,8 +7,9 @@ A focused, deterministic pipeline (not the free-form ReAct loop) that:
       `DividendPrediction`.
 
 Per the locked product decision, a weak/unreliable pattern is NEVER dropped:
-on low signal or parse failure we still return a prediction, marked LOW confidence,
-with the uncertainty carried in `reasoning`.
+on low signal or parse failure we still return a prediction, but with NO fabricated
+confidence (`confidence=None`) — the uncertainty is carried in `reasoning` instead.
+Confidence is a computed forecast probability or nothing at all; never a placeholder.
 """
 
 import json
@@ -87,21 +88,6 @@ def _pattern_text(pattern: PatternLayer) -> str:
         f"typicalAmount={pattern.typicalAmount}, trend={pattern.amountTrend}, "
         f"regular={pattern.regular}\nSummary: {pattern.summary}\nProjected next: {proj}"
     )
-
-
-def _pattern_confidence(pattern: PatternLayer) -> float:
-    """Confidence to fall back on when the research LLM is unavailable, derived from
-    the PATTERN alone. A regular payer's next payment is genuinely predictable from
-    cadence, so it deserves a real (if modest) score — not the misleading 0.0 that
-    reads as a firm '0% prediction'. Capped well below the research/declared range so
-    a pattern-only projection never masquerades as a confident call."""
-    if not pattern.projected:
-        return 0.0  # nothing to project on — no basis for any confidence
-    if not pattern.regular:
-        return 0.2  # irregular cadence — weak, but better than a bare 0%
-    # Regular cadence: the timing is dependable; a steady/growing amount is more
-    # predictable than a declining or unknown one.
-    return 0.55 if pattern.amountTrend in ("stable", "increasing") else 0.5
 
 
 async def research_prediction(
@@ -205,9 +191,13 @@ async def research_prediction(
                 payDate=dd.get("payDate"),
                 note=signals.declared_note,
             )
+        # The LLM's forecast probability. If it omits/garbles the field we keep it
+        # None (unknown) rather than defaulting to 0.0 — a missing score is not "0%".
+        conf_raw = data.get("confidence")
+        confidence = float(conf_raw) if isinstance(conf_raw, (int, float)) else None
         research = ResearchLayer(
             willMaintainPattern=bool(data.get("willMaintainPattern", True)),
-            confidence=float(data.get("confidence", 0.0) or 0.0),
+            confidence=confidence,
             predictedNext=predicted_next,
             reasoning=str(data.get("reasoning", "") or ""),
             sources=sources,
@@ -224,15 +214,14 @@ async def research_prediction(
             model=model_label,
             error=str(exc),
         )
-        fallback_conf = _pattern_confidence(pattern)
         research = ResearchLayer(
             willMaintainPattern=pattern.regular,
-            confidence=fallback_conf,
+            confidence=None,  # no research basis — we don't fabricate a probability
             predictedNext=default_next,
             reasoning=(
-                f"Could not complete web research (model: {model_label}); confidence "
-                f"is scored from the detected pattern alone ({round(fallback_conf * 100)}% — "
-                "cadence regularity and amount trend), not from research."
+                f"Could not complete web research (model: {model_label}); this is a "
+                "pattern-only projection from the detected cadence and amount trend, "
+                "with no forecast confidence scored."
             ),
             sources=[],
             model=model_label,

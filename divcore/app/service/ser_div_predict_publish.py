@@ -106,9 +106,10 @@ def _plan_events(
     # Yahoo's scheduled next ex-date — the reliable-timing floor. Guarantees a
     # forward calendar entry for variable payers whose pattern/research layers
     # both withhold; overridden by any real estimate/prediction on the same date.
-    # The date is dependable but the amount is only a forward-rate estimate, so we
-    # stamp a deliberately tiny confidence (1%) — it renders as "1%", not the "0%"
-    # a smaller value would round to, and never reads as a firm figure.
+    # The date is dependable but the amount is only a forward-rate estimate, and
+    # nothing here FORECASTS whether/what will be paid — so we make NO confidence
+    # claim (None → "—"). Confidence is a computed probability, never a placeholder;
+    # a bare timing anchor has no basis for one. (The old 1% floor was fabricated.)
     consider(next_ex_date, _RANK_SCHEDULED, {
         "summary": f"{ticker} {_fmt_amount(next_amount)} (scheduled ex-date)",
         "description": (
@@ -117,7 +118,7 @@ def _plan_events(
         ),
         "amount": next_amount,
         "divstatus": "Prediction",
-        "confidence": 0.01,
+        "confidence": None,
     })
 
     for d in facts.confirmed:
@@ -140,14 +141,22 @@ def _plan_events(
 
     nxt = research.predictedNext
     if nxt.exDate:
-        pct = round(research.confidence * 100)
+        # A real forecast probability from the research layer, or None when research
+        # was unavailable (pattern-only degrade) — we never fabricate one. When it is
+        # None the summary/description simply omit the % rather than inventing a figure.
+        has_conf = research.confidence is not None
+        pct = round(research.confidence * 100) if has_conf else None
+        conf_suffix = f" {pct}%" if has_conf else ""
+        conf_line = f"Confidence: {pct}%" if has_conf else (
+            "Confidence: not scored (research unavailable — pattern-only projection)"
+        )
         consider(nxt.exDate, _RANK_PREDICTION, {
             "summary": f"{ticker} {_fmt_amount(nxt.amount)} "
-                       f"({_ARROW.get(nxt.direction, '→')} prediction {pct}%)",
+                       f"({_ARROW.get(nxt.direction, '→')} prediction{conf_suffix})",
             "description": (
                 f"Research prediction for {ticker}.\n"
                 f"Will maintain pattern: {research.willMaintainPattern}\n"
-                f"Confidence: {pct}%\n\n{research.reasoning}"
+                f"{conf_line}\n\n{research.reasoning}"
                 + ("\n\nSources:\n" + "\n".join(f"  - {s.url}" for s in research.sources)
                    if research.sources else "")
             ),
