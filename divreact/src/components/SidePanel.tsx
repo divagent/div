@@ -28,6 +28,10 @@ function describeStep(step: AnalyzeStep): string {
       return 'Reconcile started (declaration found, correcting calendar)'
     case 'reconcile_result':
       return step.corrected ? 'Calendar corrected: Prediction → Declared' : 'Reconcile ran — no change needed'
+    case 'confidence': {
+      const pct = typeof step.value === 'number' ? `${Math.round(step.value * 100)}%` : '?'
+      return step.updated ? `Confidence written to the row — ${pct}` : `Confidence scored ${pct} (row not updated)`
+    }
     case 'llm_request':
       return 'LLM read requested (rotating model)'
     case 'llm_error':
@@ -170,21 +174,29 @@ export function SidePanel({
                   <p style={{ margin: '0 0 8px', fontWeight: 600 }}>{analysis.headline}</p>
                 ) : null}
 
-                {analysis.riskLabel && analysis.riskLabel !== 'unknown' ? (
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      padding: '2px 8px',
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      marginBottom: 8,
-                      color: RISK_COLOR[analysis.riskLabel],
-                      border: `1px solid ${RISK_COLOR[analysis.riskLabel]}`,
-                    }}
-                  >
-                    {analysis.riskLabel} reliability
-                  </span>
+                {(analysis.riskLabel && analysis.riskLabel !== 'unknown') || analysis.confidence != null ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                    {analysis.riskLabel && analysis.riskLabel !== 'unknown' ? (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: RISK_COLOR[analysis.riskLabel],
+                          border: `1px solid ${RISK_COLOR[analysis.riskLabel]}`,
+                        }}
+                      >
+                        {analysis.riskLabel} reliability
+                      </span>
+                    ) : null}
+                    {analysis.confidence != null ? (
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                        {Math.round(analysis.confidence * 100)}% confidence
+                      </span>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 <p className="agent-analysis-label">Reasoning</p>

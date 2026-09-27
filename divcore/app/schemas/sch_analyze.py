@@ -64,6 +64,13 @@ class AnalyzeResponse(BaseModel):
     reasoning: str = ""
     # Coarse reliability read the UI can color-code.
     riskLabel: Literal["low", "medium", "high", "unknown"] = "unknown"
+    # Numeric probability (0..1) that THIS payment is made at ~the shown amount/date —
+    # the number behind riskLabel, from the same grounded read. None on declared/rumor
+    # reads (a declaration is fact, not a probability) or when the model omits it.
+    confidence: Optional[float] = None
+    # True when this read wrote a fresh confidence back onto the prediction row, so
+    # the UI can refresh the calendar to show the updated %.
+    confidenceUpdated: bool = False
     sources: List[AnalysisSource] = Field(default_factory=list)
     model: Optional[str] = None
     generatedAt: Optional[str] = None

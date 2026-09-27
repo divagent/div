@@ -71,9 +71,10 @@ export function App() {
             .then((result) => {
                 if (!active || !result) return
                 setAnalysis(result)
-                // The agent found a declaration and corrected the calendar row in
-                // place — refresh the calendar so the corrected row shows now.
-                if (result.corrected) setCalendarRefreshKey((k) => k + 1)
+                // The agent either corrected the row (declaration found) or wrote a
+                // fresh confidence onto the prediction row — refresh the calendar so
+                // the updated row/% shows now.
+                if (result.corrected || result.confidenceUpdated) setCalendarRefreshKey((k) => k + 1)
             })
             .catch((error) => {
                 if (!active || (error instanceof DOMException && error.name === 'AbortError')) return

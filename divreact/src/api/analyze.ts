@@ -31,6 +31,12 @@ export type DividendAnalysis = {
   headline: string
   reasoning: string
   riskLabel: RiskLabel
+  // Numeric probability (0..1) behind riskLabel; null on declared/rumor reads or
+  // when the model omitted it.
+  confidence?: number | null
+  // True when this read wrote a fresh confidence onto the prediction row — the UI
+  // refreshes the calendar so the updated % shows.
+  confidenceUpdated?: boolean
   sources: AnalysisSource[]
   model?: string
   generatedAt?: string

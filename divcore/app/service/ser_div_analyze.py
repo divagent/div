@@ -25,6 +25,7 @@ from app.agent.age_grounding import build_grounding
 from app.agent.age_rumor import gather_rumors
 from app.agent.age_signals import gather_dividend_signals
 from app.core.ai_logging import log_event
+from app.adapters.gcal_api import patch_private
 from app.adapters.gemini_chat import chat_completion_agent_with_model
 from app.schemas.sch_analyze import AnalysisSource, AnalyzeRequest, AnalyzeResponse
 from app.service.ser_div_reconcile import reconcile_declared
@@ -49,6 +50,9 @@ ANALYSIS_SYSTEM_PROMPT = (
     "{\n"
     '  "headline": string,   // one sentence; lead with the real number / the risk\n'
     '  "riskLabel": "low"|"medium"|"high",  // reliability of THIS payment as shown\n'
+    '  "confidence": number, // 0.0-1.0: probability THIS payment is made at ~the shown\n'
+    "                        // amount/date. MUST agree with riskLabel (high reliability\n"
+    "                        // => high confidence). Thin/conflicting evidence => LOW.\n"
     '  "reasoning": string,  // 3-6 sentences citing the FACTS and SIGNALS: declared\n'
     "                        // status, coverage/payout, yield, and any cut/raise chatter\n"
     '  "sources": [ { "title": string, "url": string } ]  // ONLY urls from SIGNALS\n'
@@ -287,6 +291,12 @@ async def analyze_dividend(
         await emit("parse", keys=list(data.keys()) if isinstance(data, dict) else [])
 
         risk = str(data.get("riskLabel", "")).lower()
+        # The number behind the label, from the same read. Kept None (not 0.0) when
+        # the model omits/garbles it — a missing score is "unknown", not "0%".
+        conf_raw = data.get("confidence")
+        confidence = float(conf_raw) if isinstance(conf_raw, (int, float)) else None
+        if confidence is not None:
+            confidence = max(0.0, min(1.0, confidence))
         sources = [
             AnalysisSource(title=str(s.get("title", "")), url=str(s["url"]))
             for s in (data.get("sources") or [])
@@ -307,12 +317,41 @@ async def analyze_dividend(
             corrected = bool(outcome and outcome.get("corrected"))
             await emit("reconcile_result", corrected=corrected)
 
+        # Write the read's confidence back onto the STILL-PREDICTION row so the
+        # calendar reflects this grounded assessment instead of a stale/absent value
+        # — the whole point of the original ask (a "medium reliability" read must not
+        # sit next to a bogus %). Skipped when the row was just promoted to a declared
+        # fact (reconcile owns that row) or when the model gave no number. Best-effort:
+        # a patch failure never breaks the read. patch_private merges only this key.
+        confidence_updated = False
+        if not corrected and reconcile_task is None and confidence is not None and req.exDate:
+            current["step"] = "confidence_write"
+            try:
+                confidence_updated = await asyncio.to_thread(
+                    patch_private,
+                    ticker=ticker,
+                    ex_date=req.exDate,
+                    updates={"confidence": f"{confidence:.4f}"},
+                    trace_id=trace_id,
+                )
+            except Exception as exc:  # noqa: BLE001 - persistence is best-effort
+                log_event(
+                    "analyze_confidence_patch_failure",
+                    trace_id=trace_id,
+                    ticker=ticker,
+                    severity="LOW",
+                    error=str(exc),
+                )
+            await emit("confidence", value=confidence, updated=confidence_updated)
+
         response = AnalyzeResponse(
             ticker=ticker,
             exDate=req.exDate,
             headline=str(data.get("headline", "") or ""),
             reasoning=str(data.get("reasoning", "") or ""),
             riskLabel=risk if risk in _RISK else "unknown",
+            confidence=confidence,
+            confidenceUpdated=confidence_updated,
             sources=sources,
             model=model_label,
             generatedAt=generated_at,
