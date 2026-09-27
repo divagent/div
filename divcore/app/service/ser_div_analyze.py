@@ -24,6 +24,7 @@ from datetime import date, datetime, timezone
 from app.agent.age_grounding import build_grounding
 from app.agent.age_rumor import gather_rumors
 from app.agent.age_signals import gather_dividend_signals
+from app.agent.agent_schema import coerce_confidence
 from app.core.ai_logging import log_event
 from app.adapters.gcal_api import patch_private
 from app.adapters.gemini_chat import chat_completion_agent_with_model
@@ -172,7 +173,6 @@ async def analyze_dividend(
         )
 
     amount_text = f"{req.amount:.4f}".rstrip("0").rstrip(".") if req.amount is not None else "TBD"
-    conf_text = f"{round(req.confidence * 100)}%" if req.confidence is not None else "n/a"
 
     # Which model actually produced the read (set once the LLM call returns); stays
     # "unavailable" if we fail before reaching the model. Rotation picks it per call.
@@ -252,7 +252,6 @@ async def analyze_dividend(
             f"Ex-date shown: {req.exDate or 'unknown'}\n"
             f"Amount shown: {amount_text}\n"
             f"Row status: {req.divstatus} — {_status_note(req.divstatus)}\n"
-            f"Model confidence (prediction rows only): {conf_text}\n"
             f"Row summary: {req.summary or '(none)'}\n\n"
             f"=== VERIFIED FACTS (price, yield, trend) ===\n{grounding_text}\n"
             f"{('Automated risk hint: ' + risk_hint) if risk_hint else ''}"
@@ -293,10 +292,7 @@ async def analyze_dividend(
         risk = str(data.get("riskLabel", "")).lower()
         # The number behind the label, from the same read. Kept None (not 0.0) when
         # the model omits/garbles it — a missing score is "unknown", not "0%".
-        conf_raw = data.get("confidence")
-        confidence = float(conf_raw) if isinstance(conf_raw, (int, float)) else None
-        if confidence is not None:
-            confidence = max(0.0, min(1.0, confidence))
+        confidence = coerce_confidence(data.get("confidence"))
         sources = [
             AnalysisSource(title=str(s.get("title", "")), url=str(s["url"]))
             for s in (data.get("sources") or [])

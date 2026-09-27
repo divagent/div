@@ -18,7 +18,7 @@ from typing import Optional
 
 from app.agent.age_grounding import build_grounding
 from app.agent.age_signals import gather_dividend_signals
-from app.agent.agent_schema import DividendPrediction
+from app.agent.agent_schema import DividendPrediction, coerce_confidence
 from app.adapters.gemini_chat import chat_completion_agent_with_model
 from app.core.ai_logging import log_event
 from app.schemas.sch_predict import (
@@ -193,8 +193,9 @@ async def research_prediction(
             )
         # The LLM's forecast probability. If it omits/garbles the field we keep it
         # None (unknown) rather than defaulting to 0.0 — a missing score is not "0%".
-        conf_raw = data.get("confidence")
-        confidence = float(conf_raw) if isinstance(conf_raw, (int, float)) else None
+        # coerce_confidence also rescues a number returned as a string/percent
+        # ("0.9", "88%"), which a bare isinstance check would silently drop to None.
+        confidence = coerce_confidence(data.get("confidence"))
         research = ResearchLayer(
             willMaintainPattern=bool(data.get("willMaintainPattern", True)),
             confidence=confidence,
