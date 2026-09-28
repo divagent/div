@@ -4,6 +4,7 @@ Before doing vector search, the system must decide:
 
 > **Does this question REQUIRE dividend data search, or is it a general question?**
 
+
 Examples:
 
 * “What is a dividend?” → ❌ no search
