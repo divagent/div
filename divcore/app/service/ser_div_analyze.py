@@ -316,11 +316,15 @@ async def analyze_dividend(
         # Write the read's confidence back onto the STILL-PREDICTION row so the
         # calendar reflects this grounded assessment instead of a stale/absent value
         # — the whole point of the original ask (a "medium reliability" read must not
-        # sit next to a bogus %). Skipped when the row was just promoted to a declared
-        # fact (reconcile owns that row) or when the model gave no number. Best-effort:
-        # a patch failure never breaks the read. patch_private merges only this key.
+        # sit next to a bogus %). Skipped ONLY when reconcile just promoted this row to
+        # a declared fact (corrected) — reconcile owns the row then — or when the model
+        # gave no number. We do NOT skip merely because a reconcile task ran: it fires
+        # for any ticker carrying a declared signal (nearly every payer), and when it
+        # leaves this prediction row untouched (corrected=False) the fresh confidence
+        # must still land. Best-effort: a patch failure never breaks the read.
+        # patch_private merges only this key.
         confidence_updated = False
-        if not corrected and reconcile_task is None and confidence is not None and req.exDate:
+        if not corrected and confidence is not None and req.exDate:
             current["step"] = "confidence_write"
             try:
                 confidence_updated = await asyncio.to_thread(
