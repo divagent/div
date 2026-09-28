@@ -10,8 +10,6 @@ calling the API needs to change.
 """
 
 
-
-
 import asyncio
 import json
 from datetime import date, timedelta
