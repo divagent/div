@@ -49,9 +49,34 @@ _RANK_PREDICTION = 2
 
 _ARROW = {"up": "↑", "down": "↓", "constant": "→"}
 
+# A forecast/estimate ex-date this close to Yahoo's SCHEDULED ex-date describes the
+# SAME payment — the scheduled date is the solid, confirmable source and the LLM's
+# nearby guess must not become a second row one/two days off. Anything farther is a
+# genuinely different payment (min real cadence is ~monthly, ~30d), so 7d is safe.
+_NEARDUP_WINDOW_DAYS = 7
+
 
 def _fmt_amount(amount: Optional[float]) -> str:
     return f"${amount:.2f}" if amount is not None else "amount TBD"
+
+
+def _snap_to_scheduled(ex_date: Optional[str], scheduled_ex_date: Optional[str]) -> Optional[str]:
+    """Anchor a forecast/estimate date to the authoritative scheduled ex-date when
+    they are within the near-dup window (same payment); otherwise leave it alone.
+
+    Returns the scheduled date so the caller's `consider()` keys both onto one date
+    — the higher-rank source (research/estimate) then wins the row while the timing
+    comes from the confirmable source. No scheduled date, or a gap beyond the
+    window, means no snap: distinct payments keep their own dates.
+    """
+    if not ex_date or not scheduled_ex_date or ex_date == scheduled_ex_date:
+        return ex_date
+    try:
+        a = date.fromisoformat(str(ex_date)[:10])
+        b = date.fromisoformat(str(scheduled_ex_date)[:10])
+    except ValueError:
+        return ex_date
+    return scheduled_ex_date if abs((a - b).days) <= _NEARDUP_WINDOW_DAYS else ex_date
 
 
 def _rolling_estimates(
@@ -131,7 +156,10 @@ def _plan_events(
         })
 
     for p in pattern.projected:
-        consider(p.exDate, _RANK_ESTIMATE, {
+        # Snap the first estimate onto the scheduled date when it lands within the
+        # near-dup window; later estimates (a cadence apart) are beyond it and keep
+        # their own dates.
+        consider(_snap_to_scheduled(p.exDate, next_ex_date), _RANK_ESTIMATE, {
             "summary": f"{ticker} {_fmt_amount(p.amount)} (estimate)",
             "description": f"Pattern estimate for {ticker}. {pattern.summary}",
             "amount": p.amount,
@@ -141,6 +169,17 @@ def _plan_events(
 
     nxt = research.predictedNext
     if nxt.exDate:
+        # The research forecast and the scheduled ex-date describe the same next
+        # payment when they are days apart — anchor to the confirmable scheduled
+        # date so we publish ONE row (research content, scheduled timing) instead of
+        # two a day apart. The research row outranks the bare scheduled row, so on a
+        # shared date it wins and the scheduled row folds away.
+        pred_ex = _snap_to_scheduled(nxt.exDate, next_ex_date)
+        anchor_note = (
+            f"\nEx-date anchored to the scheduled {pred_ex} "
+            f"(forecast date was {nxt.exDate})."
+            if pred_ex != nxt.exDate else ""
+        )
         # A real forecast probability from the research layer, or None when research
         # was unavailable (pattern-only degrade) — we never fabricate one. When it is
         # None the summary/description simply omit the % rather than inventing a figure.
@@ -150,13 +189,13 @@ def _plan_events(
         conf_line = f"Confidence: {pct}%" if has_conf else (
             "Confidence: not scored (research unavailable — pattern-only projection)"
         )
-        consider(nxt.exDate, _RANK_PREDICTION, {
+        consider(pred_ex, _RANK_PREDICTION, {
             "summary": f"{ticker} {_fmt_amount(nxt.amount)} "
                        f"({_ARROW.get(nxt.direction, '→')} prediction{conf_suffix})",
             "description": (
                 f"Research prediction for {ticker}.\n"
                 f"Will maintain pattern: {research.willMaintainPattern}\n"
-                f"{conf_line}\n\n{research.reasoning}"
+                f"{conf_line}{anchor_note}\n\n{research.reasoning}"
                 + ("\n\nSources:\n" + "\n".join(f"  - {s.url}" for s in research.sources)
                    if research.sources else "")
             ),
