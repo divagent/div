@@ -201,7 +201,7 @@ async def analyze_dividend(
         # 3) Gather multi-source signals (declared filings, fundamentals, news, forums).
         current["step"] = "signals"
         signals = await gather_dividend_signals(
-            ticker, company_name=company, target_ex=req.exDate, trace_id=trace_id
+            ticker, company_name=company, target_ex=req.exDate, on_step=emit, trace_id=trace_id
         )
         await emit(
             "signals",

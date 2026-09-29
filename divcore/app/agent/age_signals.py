@@ -433,8 +433,22 @@ def _parse_dividend_history(html: str) -> Optional[dict]:
     return None
 
 
-async def _dividend_tracker(client: httpx.AsyncClient, ticker: str) -> Optional[dict]:
-    """Fetch dividendhistory.org and parse the declared dividend deterministically."""
+async def _dividend_tracker(
+    client: httpx.AsyncClient, ticker: str, *, emit=None
+) -> Optional[dict]:
+    """Fetch dividendhistory.org and parse the declared dividend deterministically.
+
+    ``emit`` is the optional SSE step sink. This is the fact-fetch that turns a
+    prediction into a declared row, so each candidate URL reports its own outcome
+    (``signals:declared_fetch``: HTTP error, non-200, table-with-no-declared-row, or
+    the parsed amount) — the reason a declaration was or wasn't found is visible in
+    the browser trace, not collapsed into the aggregate ``declared: false``.
+    """
+
+    async def _fetch_step(status: str, **data) -> None:
+        if emit is not None:
+            await emit("signals:declared_fetch", status=status, **data)
+
     base = (ticker or "").strip().upper()
     root = _root(base)
     parts = base.split(".")
@@ -452,12 +466,15 @@ async def _dividend_tracker(client: httpx.AsyncClient, ticker: str) -> Optional[
     for url in candidates:
         try:
             r = await client.get(url, headers=headers, follow_redirects=True)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - reported as a step, then try next URL
+            await _fetch_step("error", url=url, error=str(exc))
             continue
         if r.status_code != 200:
+            await _fetch_step("error", url=url, http=r.status_code)
             continue
         declared = _parse_dividend_history(r.text)
         if not declared:
+            await _fetch_step("empty", url=url, http=200, detail="no declared row in table")
             continue
 
         status = (declared.pop("status", "") or "").strip()
@@ -474,6 +491,9 @@ async def _dividend_tracker(client: httpx.AsyncClient, ticker: str) -> Optional[
             f"{declared['exDate']}, pays {declared['payDate'] or 'n/a'}"
             + (f" ({note})" if note else "")
             + "."
+        )
+        await _fetch_step(
+            "ok", url=url, http=200, amount=amt_txt, exDate=declared["exDate"], note=note
         )
         return {
             "label": "DECLARED (dividendhistory.org)",
@@ -500,26 +520,70 @@ async def _dividend_tracker(client: httpx.AsyncClient, ticker: str) -> Optional[
 # ---------------------------------------------------------------------------
 
 
+async def _run_provider(name: str, coro, emit) -> Optional[dict]:
+    """Await one provider, emit its per-provider outcome as an SSE step, and return
+    its result block (or None). Never raises: a provider error or a trace-sink error
+    must not sink the fan-out. The step records whether the provider contributed a
+    declared amount, so a fact-fetch miss shows as its own turn instead of collapsing
+    into the aggregate ``signals`` event."""
+    try:
+        block = await coro
+    except Exception as exc:  # noqa: BLE001 - provider failure is reported, not fatal
+        await emit("signals:provider", status="error", provider=name, error=str(exc))
+        return None
+    if not isinstance(block, dict):
+        await emit("signals:provider", status="empty", provider=name)
+        return None
+    declared_amt = (block.get("declared") or {}).get("amount") if block.get("declared") else None
+    await emit(
+        "signals:provider",
+        status="ok",
+        provider=name,
+        declared=declared_amt,
+        sources=len(block.get("sources", [])),
+    )
+    return block
+
+
 async def gather_dividend_signals(
     ticker: str,
     *,
     company_name: Optional[str] = None,
     target_ex: Optional[str] = None,
+    on_step=None,
     trace_id: str = "internal",
 ) -> Signals:
     """Fan out to every configured provider in parallel and merge the results.
 
     Never raises. Providers that lack a key or error out just don't contribute.
+
+    ``on_step`` is the optional SSE step sink (the analyze pipeline's ``emit``,
+    signature ``(step, status="ok", **data)``). When supplied, each provider emits a
+    ``signals:provider`` step with its outcome, and the declared fetch additionally
+    emits ``signals:declared_fetch`` per URL — so the browser trace shows WHICH
+    provider produced ``declared: false`` and why, not just the aggregate result.
     """
+
+    async def _emit(step: str, status: str = "ok", **data) -> None:
+        if on_step is None:
+            return
+        try:
+            await on_step(step, status=status, **data)
+        except Exception:  # noqa: BLE001 - trace is best-effort, never fatal
+            pass
+
     ticker = (ticker or "").strip().upper()
     async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
+        providers = [
+            ("Financial Modeling Prep", _fmp(client, ticker, target_ex)),
+            ("dividendhistory.org", _dividend_tracker(client, ticker, emit=_emit)),
+            ("Yahoo Finance", _yahoo_news(client, ticker)),
+            ("Finnhub", _finnhub(client, ticker)),
+            ("Alpha Vantage", _alpha(client, ticker)),
+            ("Tavily", _tavily(ticker, company_name)),
+        ]
         blocks = await asyncio.gather(
-            _fmp(client, ticker, target_ex),
-            _dividend_tracker(client, ticker),
-            _yahoo_news(client, ticker),
-            _finnhub(client, ticker),
-            _alpha(client, ticker),
-            _tavily(ticker, company_name),
+            *(_run_provider(name, coro, _emit) for name, coro in providers),
             return_exceptions=True,
         )
 
