@@ -75,8 +75,19 @@ function detectFrequency(sortedUnixSeconds: number[]): number | undefined {
 
 const DAY = 86_400_000
 
+// Yahoo timestamps for a US-listed security mark the ex-/pay date at the US
+// exchange, so the calendar day must be read in New York time. toISOString() reads
+// it in UTC, which shifts any timestamp not already past midnight ET to the wrong
+// day (e.g. an Oct 2 ex-date landing on Oct 1). en-CA formats as yyyy-mm-dd.
+const NY_ISO_DATE = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/New_York',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
 function toIsoDate(unixSeconds: number) {
-  return new Date(unixSeconds * 1000).toISOString().slice(0, 10)
+  return NY_ISO_DATE.format(new Date(unixSeconds * 1000))
 }
 
 async function loadIndustryAndNextExDate(symbol: string, signal: AbortSignal) {

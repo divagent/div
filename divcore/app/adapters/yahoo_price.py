@@ -19,8 +19,9 @@ default forward-yield path uses the latest price.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Optional, Sequence, Tuple
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -29,6 +30,12 @@ from app.core.ai_logging import log_event
 _CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 _UA = "Mozilla/5.0 (compatible; DivCore/1.0)"
 _TIMEOUT = 8.0
+
+# Yahoo timestamps for a US-listed security mark the ex-/pay date at the US
+# exchange, so the calendar day must be read in New York time. Converting in UTC
+# shifts any timestamp not already past midnight ET to the wrong day (e.g. an Oct 2
+# ex-date landing on Oct 1), which then disagrees with the declared date.
+_MARKET_TZ = ZoneInfo("America/New_York")
 
 
 class YahooQuote:
@@ -87,14 +94,14 @@ def _parse_chart(ticker: str, payload: dict) -> Optional[YahooQuote]:
     quote = ((r.get("indicators") or {}).get("quote") or [{}])[0]
     closes: list = quote.get("close") or []
 
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(_MARKET_TZ).date()
     prev_close: Optional[float] = None
     prev_close_date: Optional[str] = None
     # Walk newest→oldest; take the last completed bar strictly before today.
     for ts, close in zip(reversed(timestamps), reversed(closes)):
         if close is None:
             continue
-        bar_date = datetime.fromtimestamp(ts, tz=timezone.utc).date()
+        bar_date = datetime.fromtimestamp(ts, tz=_MARKET_TZ).date()
         if bar_date < today:
             prev_close = round(float(close), 4)
             prev_close_date = bar_date.isoformat()
@@ -109,7 +116,7 @@ def _parse_chart(ticker: str, payload: dict) -> Optional[YahooQuote]:
                 break
     latest_price = round(float(latest_price), 4) if latest_price is not None else None
 
-    cutoff_ts = int(datetime(today.year - 1, today.month, today.day, tzinfo=timezone.utc).timestamp())
+    cutoff_ts = int(datetime(today.year - 1, today.month, today.day, tzinfo=_MARKET_TZ).timestamp())
     raw_divs = ((r.get("events") or {}).get("dividends") or {})
     dividends: List[Tuple[str, float]] = []
     for ev in raw_divs.values():
@@ -117,7 +124,7 @@ def _parse_chart(ticker: str, payload: dict) -> Optional[YahooQuote]:
         amt = ev.get("amount")
         if ev_ts is None or amt is None or ev_ts < cutoff_ts:
             continue
-        d = datetime.fromtimestamp(ev_ts, tz=timezone.utc).date().isoformat()
+        d = datetime.fromtimestamp(ev_ts, tz=_MARKET_TZ).date().isoformat()
         dividends.append((d, float(amt)))
 
     return YahooQuote(
