@@ -40,6 +40,11 @@ from app.adapters.gcal_api import (
 # (catches a drifted row that a prior run placed just beyond the new horizon).
 _CLEANUP_BUFFER_DAYS = 45
 
+# Typical US quarterly-dividend gap between ex-date and pay date (~3 weeks). Used to
+# project a pay date onto forward estimates when the declaration lacks one, so every
+# Prediction row still carries a date for the Trades tab to log against.
+_TYPICAL_PAY_OFFSET_DAYS = 21
+
 
 def _fmt_amount(amount: Optional[float]) -> str:
     if amount is None:
@@ -181,6 +186,15 @@ def _reconcile_sync(
         except ValueError:
             pay_date = None
 
+    # The declared ex→pay gap, projected onto each forward estimate below so those
+    # Prediction rows carry a pay date too. Fall back to the typical ~3-week gap when
+    # the declaration didn't include a pay date.
+    pay_offset = _TYPICAL_PAY_OFFSET_DAYS
+    if pay_date:
+        gap = (date.fromisoformat(pay_date) - ex_d).days
+        if gap >= 0:
+            pay_offset = gap
+
     result = upsert_event(
         ticker=ticker,
         ex_date=ex,
@@ -200,6 +214,10 @@ def _reconcile_sync(
         if not e_ex:
             continue
         try:
+            e_pay = (date.fromisoformat(e_ex) + timedelta(days=pay_offset)).isoformat()
+        except ValueError:
+            e_pay = None
+        try:
             upsert_event(
                 ticker=ticker,
                 ex_date=e_ex,
@@ -211,6 +229,7 @@ def _reconcile_sync(
                 ),
                 divstatus="Prediction",
                 amount=e_amt,
+                payment_date=e_pay,
                 profile=profile,
                 trace_id=trace_id,
             )

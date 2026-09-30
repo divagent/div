@@ -55,9 +55,39 @@ _ARROW = {"up": "↑", "down": "↓", "constant": "→"}
 # genuinely different payment (min real cadence is ~monthly, ~30d), so 7d is safe.
 _NEARDUP_WINDOW_DAYS = 7
 
+# Every row (declared OR predicted) carries a payment date so the Trades tab has one
+# to log against. The declared payment uses its real pay date; a prediction/estimate
+# projects the company's OWN ex-date→pay-date gap forward onto the estimated ex-date.
+# When no declared record is on hand to measure that gap, fall back to the typical
+# US quarterly-dividend gap (pay ~3 weeks after ex-date). Only ever an estimate on a
+# Prediction row — never presented as a declared/confirmed figure.
+_TYPICAL_PAY_OFFSET_DAYS = 21
+
 
 def _fmt_amount(amount: Optional[float]) -> str:
     return f"${amount:.2f}" if amount is not None else "amount TBD"
+
+
+def _add_days(ex_date: Optional[str], days: Optional[int]) -> Optional[str]:
+    """ex-date + `days`, ISO in/out. None if either input is missing/unparseable."""
+    if not ex_date or days is None:
+        return None
+    try:
+        return (date.fromisoformat(str(ex_date)[:10]) + timedelta(days=int(days))).isoformat()
+    except ValueError:
+        return None
+
+
+def _pay_offset_days(declared_ex: Optional[str], declared_pay: Optional[str]) -> Optional[int]:
+    """The company's own ex-date→pay-date gap in days, or None when it can't be
+    measured (missing dates, unparseable, or a nonsensical negative gap)."""
+    if not declared_ex or not declared_pay:
+        return None
+    try:
+        gap = (date.fromisoformat(str(declared_pay)[:10]) - date.fromisoformat(str(declared_ex)[:10])).days
+    except ValueError:
+        return None
+    return gap if gap >= 0 else None
 
 
 def _snap_to_scheduled(ex_date: Optional[str], scheduled_ex_date: Optional[str]) -> Optional[str]:
@@ -117,16 +147,34 @@ def _plan_events(
     *,
     next_ex_date: Optional[str] = None,
     next_amount: Optional[float] = None,
+    declared_ex_date: Optional[str] = None,
+    declared_pay_date: Optional[str] = None,
 ) -> list[dict]:
-    """Build the list of calendar items, one per ex-date (highest-rank source wins)."""
+    """Build the list of calendar items, one per ex-date (highest-rank source wins).
+
+    Every row is stamped with a paymentDate so the Trades tab has one to log against:
+    the row on the declared ex-date gets its real pay date; every other row projects
+    the company's own ex→pay gap (or the typical quarterly gap) onto its ex-date."""
     by_date: dict[str, dict] = {}
+
+    # Company-specific ex→pay gap from the declared record, else the typical gap.
+    offset = _pay_offset_days(declared_ex_date, declared_pay_date)
+    if offset is None:
+        offset = _TYPICAL_PAY_OFFSET_DAYS
+
+    def pay_for(ex_date: str) -> Optional[str]:
+        # The declared payment keeps its real, confirmed pay date; everything else is
+        # an estimate projected from the gap.
+        if declared_pay_date and ex_date == declared_ex_date:
+            return declared_pay_date
+        return _add_days(ex_date, offset)
 
     def consider(ex_date: Optional[str], rank: int, item: dict) -> None:
         if not ex_date:
             return
         existing = by_date.get(ex_date)
         if existing is None or rank > existing["_rank"]:
-            by_date[ex_date] = {"exDate": ex_date, "_rank": rank, **item}
+            by_date[ex_date] = {"exDate": ex_date, "_rank": rank, "paymentDate": pay_for(ex_date), **item}
 
     # Yahoo's scheduled next ex-date — the reliable-timing floor. Guarantees a
     # forward calendar entry for variable payers whose pattern/research layers
@@ -230,6 +278,7 @@ async def _publish_all(
                 divstatus=ev["divstatus"],
                 amount=ev.get("amount"),
                 confidence=ev.get("confidence"),
+                payment_date=ev.get("paymentDate"),
                 forward_rate=forward.get("forwardRate"),
                 forward_yield=forward.get("forwardYield"),
                 price=forward.get("price"),
@@ -336,6 +385,10 @@ async def predict_and_publish(
             ticker, facts, pattern, research,
             next_ex_date=req.facts.nextExDate,
             next_amount=req.facts.nextAmount,
+            # Measure the company's ex→pay gap from any declared record found in
+            # research, so predicted rows carry a projected pay date too.
+            declared_ex_date=research.declared.exDate if research.declared else None,
+            declared_pay_date=research.declared.payDate if research.declared else None,
         )
         forward = await _forward_from_facts(ticker, req, trace_id=trace_id)
         # Ticker-level Yahoo facts, stamped on every event so the click/analyze
