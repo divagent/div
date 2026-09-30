@@ -45,11 +45,30 @@ _CLEANUP_BUFFER_DAYS = 45
 # Prediction row still carries a date for the Trades tab to log against.
 _TYPICAL_PAY_OFFSET_DAYS = 21
 
+# A prediction whose ex-date is this close to the declared ex-date describes the SAME
+# payment on a drifted date (e.g. Yahoo's scheduled date landing a day off the real
+# declared one). It is definitively superseded by the declaration, so it is dropped
+# even when no fresh estimate series is supplied — otherwise a day-off declaration
+# leaves a stale duplicate prediction beside the new Declared row. Mirrors the predict
+# path's near-dup window; min real cadence is ~monthly (~30d), so 7d never eats a
+# genuinely different payment. (Same constant as ser_div_predict_publish.)
+_NEARDUP_WINDOW_DAYS = 7
+
 
 def _fmt_amount(amount: Optional[float]) -> str:
     if amount is None:
         return "amount TBD"
     return "$" + (f"{amount:.4f}".rstrip("0").rstrip("."))
+
+
+def _within_neardup(ev_ex: str, declared_ex: date) -> bool:
+    """True when a prediction's ex-date is within the near-dup window of the declared
+    ex-date — i.e. the SAME payment on a drifted date, superseded by the declaration."""
+    try:
+        d = date.fromisoformat(str(ev_ex)[:10])
+    except ValueError:
+        return False
+    return abs((d - declared_ex).days) <= _NEARDUP_WINDOW_DAYS
 
 
 async def reconcile_declared(
@@ -138,6 +157,7 @@ def _reconcile_sync(
     price_as_of: Optional[str] = None
     payments_per_year: Optional[int] = None
     stale_gids: list[str] = []
+    neardup_gids: list[str] = []
     for ev in list_events(time_min=lo, time_max=hi, trace_id=trace_id):
         if (ev.get("ticker") or "").strip().upper() != ticker:
             continue
@@ -168,7 +188,13 @@ def _reconcile_sync(
         ):
             gid = ev.get("googleEventId")
             if gid:
-                stale_gids.append(gid)
+                # Same payment on a drifted date => always drop (below). Otherwise a
+                # genuinely different future payment => only drop once a fresh series
+                # replaces it.
+                if _within_neardup(ev_ex, ex_d):
+                    neardup_gids.append(gid)
+                else:
+                    stale_gids.append(gid)
 
     # Write the declaration as fact on its true date (overwrites any row already
     # sitting on that exact date — prediction becomes fact in place). This is the
@@ -275,9 +301,15 @@ def _reconcile_sync(
                 severity="MEDIUM", error=str(exc),
             )
 
-    # Cleanup ONLY after the new series is in place. If no estimates were supplied
-    # or none could be written, keep the old ones — never leave the horizon emptier.
+    # Cleanup, after the declared row (and any new series) is in place. Near-dup
+    # predictions are the SAME payment on a drifted date — always drop them, even with
+    # no estimate series, so a day-off declaration never leaves a duplicate behind.
     removed = 0
+    for gid in neardup_gids:
+        if delete_event(event_id=gid, trace_id=trace_id):
+            removed += 1
+    # Farther stale predictions are different payments — only drop them once a fresh
+    # series has replaced them, so a fact-driven refresh never empties the horizon.
     if estimates and written_est:
         for gid in stale_gids:
             if delete_event(event_id=gid, trace_id=trace_id):
