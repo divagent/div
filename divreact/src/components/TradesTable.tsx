@@ -127,11 +127,11 @@ export function TradesTable() {
 
   const visible = useMemo(() => {
     const filtered = showHidden ? rows : rows.filter((r) => !r.hidden)
-    // Sort by ex-date ascending (soonest first); rows without an ex-date go last.
+    // Sort by payment date descending (latest first); rows without one go last.
     return [...filtered].sort((a, b) => {
-      if (!a.exDate) return 1
-      if (!b.exDate) return -1
-      return a.exDate.localeCompare(b.exDate)
+      if (!a.paymentDate) return 1
+      if (!b.paymentDate) return -1
+      return b.paymentDate.localeCompare(a.paymentDate)
     })
   }, [rows, showHidden])
 
