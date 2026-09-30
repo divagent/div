@@ -131,22 +131,35 @@ def _reconcile_sync(
     # rows keep them, and collect the stale FUTURE predictions to drop LATER (only
     # once the new series is safely written).
     profile: Optional[dict] = None
+    # Forward-yield basis carried off the existing rows (prefer the declared date's
+    # row) so we can RECOMPUTE the forward yield from the freshly declared amount —
+    # otherwise the row keeps a yield priced off the old, superseded amount.
+    price: Optional[float] = None
+    price_as_of: Optional[str] = None
+    payments_per_year: Optional[int] = None
     stale_gids: list[str] = []
     for ev in list_events(time_min=lo, time_max=hi, trace_id=trace_id):
         if (ev.get("ticker") or "").strip().upper() != ticker:
             continue
+        prefer = ev.get("exDate") == ex
         has_facts = (
             ev.get("ttmAmount") is not None
             or ev.get("companyName")
             or ev.get("pastYearDividends")
         )
-        if has_facts and (profile is None or ev.get("exDate") == ex):
+        if has_facts and (profile is None or prefer):
             profile = {
                 "companyName": ev.get("companyName"),
                 "currency": ev.get("currency"),
                 "ttmAmount": ev.get("ttmAmount"),
                 "pastYearDividends": ev.get("pastYearDividends") or [],
             }
+        if ev.get("price") is not None and (price is None or prefer):
+            price = ev.get("price")
+            price_as_of = ev.get("priceAsOf")
+        pyd = ev.get("pastYearDividends")
+        if pyd and (payments_per_year is None or prefer):
+            payments_per_year = len(pyd)
         ev_ex = ev.get("exDate") or ""
         if (
             ev.get("divstatus") == "Prediction"
@@ -195,6 +208,19 @@ def _reconcile_sync(
         if gap >= 0:
             pay_offset = gap
 
+    # Recompute the forward yield off the DECLARED amount as the new run rate
+    # (annualised amount × payments/year, over the last known price) — same formula
+    # as yahoo_price.forward_rate_and_yield, but keyed on the declared figure so the
+    # yield tracks the correction instead of the superseded amount. Falls back to the
+    # trailing-dividend count, else quarterly, for the cadence.
+    ppy = payments_per_year or (len(estimates) + 1 if estimates else None) or 4
+    fwd_rate = round(amount * ppy, 4) if amount is not None else None
+    fwd_yield = (
+        round(fwd_rate / price * 100, 2)
+        if fwd_rate is not None and price and price > 0
+        else None
+    )
+
     result = upsert_event(
         ticker=ticker,
         ex_date=ex,
@@ -203,6 +229,10 @@ def _reconcile_sync(
         divstatus="Declared",
         amount=amount,
         payment_date=pay_date,
+        forward_rate=fwd_rate,
+        forward_yield=fwd_yield,
+        price=price,
+        price_as_of=price_as_of,
         profile=profile,
         trace_id=trace_id,
     )
@@ -230,6 +260,10 @@ def _reconcile_sync(
                 divstatus="Prediction",
                 amount=e_amt,
                 payment_date=e_pay,
+                forward_rate=fwd_rate,
+                forward_yield=fwd_yield,
+                price=price,
+                price_as_of=price_as_of,
                 profile=profile,
                 trace_id=trace_id,
             )
