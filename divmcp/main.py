@@ -5,6 +5,7 @@ is mounted at `/mcp`; because the server sets `streamable_http_path="/"`, the ac
 MCP endpoint is exactly `/mcp`. `/health` is a plain liveness check.
 """
 
+
 from __future__ import annotations
 
 import contextlib
