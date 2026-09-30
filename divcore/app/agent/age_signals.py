@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Optional
 
 import httpx
@@ -506,6 +506,125 @@ async def _dividend_tracker(
 
 
 # ---------------------------------------------------------------------------
+# Provider: Nasdaq dividends API — DETERMINISTIC declared dividend (US listings).
+#
+# Nasdaq's own quote API publishes the full dividend record per US symbol —
+# ex-date, DECLARATION date, record date, pay date, and cash amount — as clean
+# JSON with no API key. A row that carries a declaration date is a board-declared
+# fact, so we parse it directly and let it drive "Declared". This is the most
+# authoritative near-term source: it catches this-week ex-dates the historical
+# feeds lag on, and its amount supersedes a stale prediction (it once had the
+# real $0.25 while the pattern still projected the old $0.39). Non-US/suffixed
+# symbols aren't covered — Nasdaq returns "not available" — so we skip them.
+# ---------------------------------------------------------------------------
+
+_NASDAQ_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+)
+
+
+def _parse_mdy(raw: Optional[str]) -> Optional[str]:
+    """Nasdaq's MM/DD/YYYY -> ISO yyyy-mm-dd. None for blanks / 'N/A' / junk."""
+    s = (raw or "").strip()
+    if not s or s.upper() == "N/A":
+        return None
+    try:
+        return datetime.strptime(s, "%m/%d/%Y").date().isoformat()
+    except ValueError:
+        return None
+
+
+def _pick_nasdaq_declared(rows: Optional[list[dict]], target_ex: Optional[str]) -> Optional[dict]:
+    """Pick the DECLARED dividend nearest the target ex-date (else the latest).
+
+    A row counts as declared only when it carries a real declaration date — that is
+    the board-announced fact. Rows without one (bare schedule placeholders) are
+    skipped so we never stamp "Declared" on something merely projected."""
+    parsed: list[dict] = []
+    for h in rows or []:
+        ex = _parse_mdy(h.get("exOrEffDate"))
+        decl = _parse_mdy(h.get("declarationDate"))
+        amt_m = re.search(r"-?\d+\.?\d*", str(h.get("amount") or "").replace(",", "").replace("$", ""))
+        if not ex or not decl or not amt_m:
+            continue
+        parsed.append(
+            {
+                "exDate": ex,
+                "amount": float(amt_m.group()),
+                "declarationDate": decl,
+                "payDate": _parse_mdy(h.get("paymentDate")),
+            }
+        )
+    if not parsed:
+        return None
+    parsed.sort(key=lambda r: r["exDate"], reverse=True)
+    if target_ex:
+        best = min(parsed, key=lambda r: abs((_d(r["exDate"]) - _d(target_ex)).days))
+        if abs((_d(best["exDate"]) - _d(target_ex)).days) <= 10:
+            return best
+    return parsed[0]
+
+
+async def _nasdaq(
+    client: httpx.AsyncClient, ticker: str, target_ex: Optional[str], *, emit=None
+) -> Optional[dict]:
+    """Fetch Nasdaq's dividends API and parse the declared dividend deterministically.
+
+    Like the dividendhistory.org tracker, this is a fact-fetch that turns a
+    prediction into a declared row, so it reports its own ``signals:declared_fetch``
+    step (HTTP error, non-200, no-declared-row, or the parsed amount)."""
+
+    async def _step(status: str, **data) -> None:
+        if emit is not None:
+            await emit("signals:declared_fetch", status=status, provider="Nasdaq", **data)
+
+    base = (ticker or "").strip().upper()
+    # Nasdaq's feed keys on the bare US symbol; suffixed (non-US) tickers it can't
+    # resolve, returning a "not available" stub — skip them rather than misparse.
+    if "." in base:
+        return None
+
+    url = f"https://api.nasdaq.com/api/quote/{base}/dividends?assetclass=stocks"
+    headers = {"User-Agent": _NASDAQ_UA, "Accept": "application/json"}
+    try:
+        r = await client.get(url, headers=headers)
+    except Exception as exc:  # noqa: BLE001 - reported as a step, then skipped
+        await _step("error", url=url, error=str(exc))
+        return None
+    if r.status_code != 200:
+        await _step("error", url=url, http=r.status_code)
+        return None
+
+    try:
+        rows = (((r.json() or {}).get("data") or {}).get("dividends") or {}).get("rows")
+    except Exception:  # noqa: BLE001 - malformed body → nothing to parse
+        rows = None
+    declared = _pick_nasdaq_declared(rows, target_ex)
+    if not declared:
+        await _step("empty", url=url, http=200, detail="no declared row for target ex-date")
+        return None
+
+    line = (
+        f"DECLARED dividend on record: {declared['amount']} per share, ex-date "
+        f"{declared['exDate']}, declared {declared['declarationDate']}, "
+        f"pays {declared['payDate'] or 'n/a'}."
+    )
+    await _step("ok", url=url, http=200, amount=declared["amount"], exDate=declared["exDate"])
+    return {
+        "label": "DECLARED (Nasdaq)",
+        "declared": declared,
+        "lines": [line],
+        "sources": [
+            {
+                "title": f"{base} dividend history (Nasdaq)",
+                "url": f"https://www.nasdaq.com/market-activity/stocks/{base.lower()}/dividend-history",
+            }
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
 # NOTE: there is deliberately NO LLM "declaration resolver" here. A declared
 # dividend is a fact and may only be sourced deterministically (FMP structured
 # feed, dividendhistory.org table). We removed the web-snippet LLM extraction
@@ -575,6 +694,9 @@ async def gather_dividend_signals(
     ticker = (ticker or "").strip().upper()
     async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
         providers = [
+            # Nasdaq first: it carries the declaration date explicitly, the strongest
+            # proof a row is board-declared, so its fact wins the declared slot.
+            ("Nasdaq", _nasdaq(client, ticker, target_ex, emit=_emit)),
             ("Financial Modeling Prep", _fmp(client, ticker, target_ex)),
             ("dividendhistory.org", _dividend_tracker(client, ticker, emit=_emit)),
             ("Yahoo Finance", _yahoo_news(client, ticker)),
