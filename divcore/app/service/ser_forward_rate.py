@@ -12,6 +12,12 @@ computes the yield, patches it back onto the events, and returns it. A second
 viewer that day finds priceAsOf == today already stamped and does zero fetches
 (publish-time writes also stamp priceAsOf == today, so freshly predicted symbols
 are skipped too). All best-effort — Yahoo/Calendar hiccups just leave "—".
+
+DECLARED rows are LOCKED and never refreshed here: their forward yield is priced
+off the declared amount at reconcile time, and Yahoo's trailing dividends still
+carry the pre-declaration amount, so re-pricing would put a stale figure back on a
+fact. Only PREDICTION rows refresh to the latest price — as long as a row isn't
+declared, it always tracks the newest data.
 """
 
 from __future__ import annotations
@@ -50,6 +56,10 @@ async def enrich_forward_rates(items: list[dict], *, trace_id: str = "internal")
     for it in items:
         tk = (it.get("ticker") or "").upper()
         if not tk:
+            continue
+        # Declared rows are locked facts — leave their reconcile-priced forward yield
+        # alone. Everything not declared refreshes to the latest price below.
+        if it.get("divstatus") == "Declared":
             continue
         by_ticker.setdefault(tk, []).append(it)
         if it.get("priceAsOf") == today and it.get("forwardYield") is not None:
