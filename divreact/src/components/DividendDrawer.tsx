@@ -36,6 +36,7 @@ export function DividendDrawer({
           <Metric icon={<Sparkles size={18} />} label="Status" value={dividend.status ?? 'N/A'} />
         </div>
 
+        <p className="ticker-sub" style={{ margin: '16px 0 0' }}>Dates shown in New York time</p>
         <dl className="date-list">
           <div>
             <dt>Declaration date</dt>

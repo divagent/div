@@ -43,7 +43,7 @@ export function TickerProfileCard({
             </div>
 
             <div className="ticker-next">
-                <span className="ticker-section-label">Next ex-dividend</span>
+                <span className="ticker-section-label">Next ex-dividend · New York time</span>
                 {profile.nextExDate ? (
                     <span>
                         {formatDate(profile.nextExDate)} · ≈ {formatCurrency(profile.nextAmount ?? 0)}
@@ -54,7 +54,7 @@ export function TickerProfileCard({
             </div>
 
             <div className="ticker-history">
-                <span className="ticker-section-label">Past year ({profile.pastYearDividends.length})</span>
+                <span className="ticker-section-label">Past year ({profile.pastYearDividends.length}) · New York time</span>
                 {profile.pastYearDividends.length ? (
                     <ul>
                         {profile.pastYearDividends.map((event) => (

@@ -33,6 +33,7 @@ export function DividendTable({
             <div className="table-header">
                 <div>
                     <h2>Upcoming dividends</h2>
+                    <p className="ticker-sub" style={{ margin: 0 }}>Dates in New York time</p>
                 </div>
                 <label>
                     Show

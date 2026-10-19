@@ -133,6 +133,7 @@ function PredictionLayers({ result }: { result: PredictResponse }) {
 
   return (
     <div style={resultBox}>
+      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Dates shown in New York time</div>
       {/* Layer 1 — confirmed facts */}
       <div style={layerCard}>
         <span style={layerLabel}>Facts · confirmed</span>

@@ -90,7 +90,7 @@ export function SidePanel({
 
           <h3 style={{ margin: '2px 0 0' }}>{selectedItem.ticker}</h3>
           <p className="ticker-sub" style={{ margin: 0 }}>
-            Ex-date {formatDate(selectedItem.exDate)}
+            Ex-date (New York time) {formatDate(selectedItem.exDate)}
             {selectedItem.amount != null ? ` · ${formatCurrency(selectedItem.amount)}` : ''}
           </p>
 

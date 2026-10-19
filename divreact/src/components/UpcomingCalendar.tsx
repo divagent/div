@@ -102,7 +102,7 @@ export function UpcomingCalendar({
         <div>
           <h2>Upcoming dividends</h2>
           <p className="ticker-sub" style={{ margin: 0 }}>
-            From the calendar · next {days} days
+            From the calendar · next {days} days · dates in New York time
             {priceAsOf ? ` · forward yield priced ${formatDate(priceAsOf)}` : ''}
           </p>
         </div>

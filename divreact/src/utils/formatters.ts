@@ -11,7 +11,7 @@ export function formatDate(value?: string) {
   if (!value) return 'N/A'
 
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`)
-  if (Number.isNaN(date.getTime())) return `${value} (New York time)`
+  if (Number.isNaN(date.getTime())) return value
 
   const formatted = new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -19,7 +19,7 @@ export function formatDate(value?: string) {
     year: 'numeric',
     timeZone: 'America/New_York',
   }).format(date)
-  return `${formatted} (New York time)`
+  return formatted
 }
 
 export function formatDateTime(value: string | Date) {
@@ -35,7 +35,7 @@ export function formatDateTime(value: string | Date) {
     timeZone: 'America/New_York',
     timeZoneName: 'short',
   }).format(date)
-  return `${formatted} (New York time)`
+  return formatted
 }
 
 export function todayInNewYork() {
