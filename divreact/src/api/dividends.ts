@@ -1,6 +1,7 @@
 import { adminPassword, adminUsername, apiBaseUrl } from '../config/app'
 import type { DividendApiResponse } from '../types/dividend'
 import { normalizeDividends } from '../utils/dividends'
+import { todayInNewYork } from '../utils/formatters'
 
 export type DividendQuery = {
     startDate: string
@@ -15,8 +16,8 @@ export type DividendQuery = {
 // absolute dates, and no longer filters server-side. Search/exchange filtering
 // happens client-side in filterAndSortDividends, so we only translate the window.
 function daysFromToday(dateString: string) {
-    const today = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00').getTime()
-    const target = new Date(`${dateString}T00:00:00`).getTime()
+    const today = Date.parse(`${todayInNewYork()}T00:00:00Z`)
+    const target = Date.parse(`${dateString.slice(0, 10)}T00:00:00Z`)
     return Math.round((target - today) / 86_400_000)
 }
 

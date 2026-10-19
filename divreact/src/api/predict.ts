@@ -1,5 +1,6 @@
 import { adminPassword, adminUsername, apiBaseUrl } from '../config/app'
 import type { TickerProfile } from '../types/ticker'
+import { todayInNewYork } from '../utils/formatters'
 
 // ---- Request -------------------------------------------------------------
 // Mirrors src/data/ai-query.contract.md. The frontend is the source of truth
@@ -93,7 +94,7 @@ export type PredictResponse = {
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayInNewYork()
 }
 
 /**

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2, TrendingDown, TrendingUp } from 'lucide-react'
 import { fetchMarketSummary, type MarketBrief } from '../api/marketSummary'
+import { formatDateTime } from '../utils/formatters'
 
 // Idle-state right pane: an hourly AI "Stock market today" briefing — headline,
 // desk byline + timestamp, real index/mover moves, and a narrative paragraph, in
@@ -40,7 +41,7 @@ export function MarketSnapshot() {
     }
   }, [])
 
-  const updated = brief?.updatedAt ? new Date(brief.updatedAt) : null
+  const updated = brief?.updatedAt ? formatDateTime(brief.updatedAt) : null
 
   return (
     <div className="market-brief">
@@ -62,15 +63,7 @@ export function MarketSnapshot() {
             <p className="market-brief-byline">
               {brief.byline}
               {brief.byline && updated ? ' · ' : ''}
-              {updated
-                ? `Updated ${updated.toLocaleString(undefined, {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                  })}`
-                : ''}
+              {updated ? `Updated ${updated}` : ''}
             </p>
           )}
 

@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { CalendarDays, Check, ExternalLink, ListPlus, Loader2, TriangleAlert } from 'lucide-react'
 import { fetchUpcomingCalendar, type CalendarItem, type DivStatus } from '../api/calendar'
 import { insertTrade } from '../api/trades'
-import { formatCurrency, formatDate } from '../utils/formatters'
+import { addDays, formatCurrency, formatDate, todayInNewYork } from '../utils/formatters'
 
 const STATUS_COLOR: Record<DivStatus, string> = {
   Declared: 'var(--success)',
@@ -35,9 +35,9 @@ export function UpcomingCalendar({
 }) {
   // Ex-dates that have already arrived (today or earlier): buying now no longer
   // earns the dividend, so these rows are greyed out as non-actionable.
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayInNewYork()
   // Tomorrow's ex-date is the last day to buy in — highlight it in brand orange.
-  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+  const tomorrow = addDays(today, 1)
   const [items, setItems] = useState<CalendarItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

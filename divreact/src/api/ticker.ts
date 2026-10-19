@@ -46,8 +46,17 @@ type YahooQuoteSummaryResponse = {
 }
 
 function yahooDateToIso(value: YahooDate | undefined): string | undefined {
-  const seconds = typeof value === 'object' ? value?.raw : value
-  return typeof seconds === 'number' && seconds > 0 ? toIsoDate(seconds) : undefined
+  if (typeof value === 'object' && value) {
+    if (typeof value.fmt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.fmt)) return value.fmt
+    if (typeof value.raw === 'number' && value.raw > 0) {
+      return new Date(value.raw * 1000).toISOString().slice(0, 10)
+    }
+    return undefined
+  }
+
+  return typeof value === 'number' && value > 0
+    ? new Date(value * 1000).toISOString().slice(0, 10)
+    : undefined
 }
 
 function yahooNumber(value: YahooNumber | undefined): number | undefined {
