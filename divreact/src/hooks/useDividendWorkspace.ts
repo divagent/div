@@ -15,7 +15,7 @@ export function useDividendWorkspace() {
     const today = todayInNewYork()
     const startDate = today
     const endDate = addDays(today, 7)
-    const [watchlist, setWatchlist] = useState<string[]>(defaultWatchlist)
+    const watchlist = defaultWatchlist
     const [dividends, setDividends] = useState<Dividend[]>([])
     const [aiPrompt, setAiPrompt] = useState(queryPresets[0])
     const [aiOutput, setAiOutput] = useState('')
