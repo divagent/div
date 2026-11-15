@@ -1,8 +1,8 @@
-from divcore.app.api.r_langgraph import langgraphRou
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse
 
 from app.api.r_div import divRou
+from app.api.r_langgraph import langgraphRou
 from app.api.r_market import marketRou
 from app.api.r_trace import traceRou
 
