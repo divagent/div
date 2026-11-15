@@ -3,6 +3,6 @@ repos:
     hooks:
       - id: hello
         name: Say Hello
-        entry: python -c "print('Hello! Pre-commit is running.')"
+        entry: python -c "import sys; print('Hello! Pre-commit is running.', file=sys.stderr)"
         language: system
         pass_filenames: false
