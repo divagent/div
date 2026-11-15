@@ -6,4 +6,3 @@ repos:
         entry: python -c "print('Hello! Pre-commit is running.')"
         language: system
         pass_filenames: false
-        verbose: true
