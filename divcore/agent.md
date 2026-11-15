@@ -6,7 +6,6 @@ Before doing vector search, the system must decide:
 
 Examples:
 
-
 * “What is a dividend?” → ❌ no search
 * “Which dividends are next week?” → ✅ search
 * “Explain dividend yield” → ❌ no search
