@@ -3,6 +3,7 @@ repos:
     hooks:
       - id: hello
         name: Say Hello
-        entry: powershell.exe -NoProfile -Command "Write-Output 'Hello! Pre-commit is running.'; Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('Hello! Pre-commit is running.', 'Git Pre-commit')"
+        entry: python -c "print('Hello! Pre-commit is running.')"
         language: system
         pass_filenames: false
+        verbose: true
