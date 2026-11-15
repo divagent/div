@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: hello
+        name: Say Hello
+        entry: python -c "print('Hello! Pre-commit is running.')"
+        language: system
+        pass_filenames: false
