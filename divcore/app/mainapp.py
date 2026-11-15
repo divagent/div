@@ -1,15 +1,15 @@
 import os
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from starlette import status
 
+from app.api import rou
 from app.config import get_settings_singleton
 from app.core.rag_middleware import request_context_middleware
 from app.db.conn.db_async import async_engine
-from app.api import rou
 
 # setup_logger()
 security = HTTPBasic()

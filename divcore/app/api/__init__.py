@@ -1,3 +1,4 @@
+from divcore.app.api.r_langgraph import langgraphRou
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse
 
@@ -10,6 +11,7 @@ rou = APIRouter()
 rou.include_router(divRou)
 rou.include_router(traceRou)
 rou.include_router(marketRou)
+rou.include_router(langgraphRou)
 
 
 @rou.get("/")
