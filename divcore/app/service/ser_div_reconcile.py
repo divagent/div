@@ -28,13 +28,13 @@ import asyncio
 from datetime import date, timedelta
 from typing import Optional
 
-from app.core.ai_logging import log_event
 from app.adapters.gcal_api import (
     CalendarNotConfigured,
     delete_event,
     list_events,
     upsert_event,
 )
+from app.core.ai_logging import log_event
 
 # Days past the furthest new estimate to still scan for stale predictions to drop
 # (catches a drifted row that a prior run placed just beyond the new horizon).

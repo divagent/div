@@ -21,16 +21,15 @@ import asyncio
 import json
 from datetime import date, datetime, timezone
 
+from app.adapters.gcal_api import patch_private
+from app.adapters.gemini_chat import chat_completion_agent_with_model
 from app.agent.age_grounding import build_grounding
 from app.agent.age_rumor import gather_rumors
 from app.agent.age_signals import gather_dividend_signals
 from app.agent.agent_schema import coerce_confidence
 from app.core.ai_logging import log_event
-from app.adapters.gcal_api import patch_private
-from app.adapters.gemini_chat import chat_completion_agent_with_model
 from app.schemas.sch_analyze import AnalysisSource, AnalyzeRequest, AnalyzeResponse
 from app.service.ser_div_reconcile import reconcile_declared
-
 
 ANALYSIS_SYSTEM_PROMPT = (
     "You are a skeptical dividend-risk analyst. You are given ONE dividend calendar "

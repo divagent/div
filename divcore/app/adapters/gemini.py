@@ -6,7 +6,6 @@ from google import genai
 
 from app.config import get_settings_singleton
 
-
 DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 

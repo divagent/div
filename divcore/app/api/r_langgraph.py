@@ -18,6 +18,7 @@ async def fetch_declared(state:ResolutionState) -> dict:
     except Exception: 
         found = False
 
+    
     return {
         "sources_tried": state["sources_tried"] + ["dividendhistory.org"],
         "stop_reason": None if found else "source_unreachable",
@@ -37,7 +38,7 @@ graph = build_graph()
 
 
 
-@langgraphRou.post("/lg//resolve-declared", tags=["LangGraph"])
+@langgraphRou.post("/lg/resolve-declared", tags=["LangGraph"])
 async def resolve_declared(req: ResolveRequest):
     initial_state: ResolutionState = {
         "ticker": req.ticker,
