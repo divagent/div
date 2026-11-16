@@ -91,7 +91,7 @@ def _pick_declared(historical: list[dict], target_ex: Optional[str]) -> Optional
     rows.sort(key=lambda r: r["exDate"], reverse=True)
     if target_ex:
         best = min(rows, key=lambda r: abs((_d(r["exDate"]) - _d(target_ex)).days))
-        if abs((_d(best["exDate"]) - _d(target_ex)).days) <= 10:
+        if abs((_d(best["exDate"]) - _d(target_ex)).days) <= 45:
             return best
     return rows[0]
 
@@ -561,7 +561,7 @@ def _pick_nasdaq_declared(rows: Optional[list[dict]], target_ex: Optional[str]) 
     parsed.sort(key=lambda r: r["exDate"], reverse=True)
     if target_ex:
         best = min(parsed, key=lambda r: abs((_d(r["exDate"]) - _d(target_ex)).days))
-        if abs((_d(best["exDate"]) - _d(target_ex)).days) <= 10:
+        if abs((_d(best["exDate"]) - _d(target_ex)).days) <= 45:
             return best
     return parsed[0]
 
@@ -700,7 +700,7 @@ async def gather_dividend_signals(
             # proof a row is board-declared, so its fact wins the declared slot.
             ("Nasdaq", _nasdaq(client, ticker, target_ex, emit=_emit)),
             ("Financial Modeling Prep", _fmp(client, ticker, target_ex)),
-            ("dividendhistory.org", _dividend_tracker(client, ticker, emit=_emit)),
+            ("EOD Historical Data",     _eod(client, ticker, target_ex, emit=_emit)),
             ("Yahoo Finance", _yahoo_news(client, ticker)),
             ("Finnhub", _finnhub(client, ticker)),
             ("Alpha Vantage", _alpha(client, ticker)),
@@ -760,3 +760,133 @@ async def gather_dividend_signals(
         sentiment=sig.sentiment,
     )
     return sig
+
+
+
+_EOD_EXCHANGE = {
+    "TO": "TO",
+    "V": "V",
+    "NE": "NEO",
+    "CN": "CN",
+}
+
+
+def _parse_eod_declared(rows: list[dict], target_ex: Optional[str]) -> Optional[dict]:
+    """Pick the declared dividend nearest the target ex-date (else the latest).
+
+    EOD rows that carry a declarationDate are board-announced facts.
+    Rows without one are schedule placeholders — skipped."""
+    parsed: list[dict] = []
+    for h in rows or []:
+        ex = (h.get("date") or "").strip()[:10]
+        decl = (h.get("declarationDate") or "").strip()[:10]
+        amt = h.get("value") or h.get("unadjustedValue")
+        if not ex or not decl or amt is None:
+            continue
+        try:
+            ex_iso = _d(ex).isoformat()
+            _d(decl)  # validate; discard if unparseable
+        except ValueError:
+            continue
+        try:
+            amt_f = float(amt)
+        except (TypeError, ValueError):
+            continue
+        parsed.append(
+            {
+                "exDate": ex_iso,
+                "amount": amt_f,
+                "declarationDate": decl,
+                "payDate": (h.get("paymentDate") or "").strip()[:10] or None,
+            }
+        )
+    if not parsed:
+        return None
+    parsed.sort(key=lambda r: r["exDate"], reverse=True)
+    if target_ex:
+        best = min(parsed, key=lambda r: abs((_d(r["exDate"]) - _d(target_ex)).days))
+        if abs((_d(best["exDate"]) - _d(target_ex)).days) <= 45:
+            return best
+    return parsed[0]
+
+
+async def _eod(
+    client: httpx.AsyncClient,
+    ticker: str,
+    target_ex: Optional[str],
+    *,
+    emit=None,
+) -> Optional[dict]:
+    """Fetch EOD Historical Data and parse the declared dividend.
+
+    Covers TSX (.TO), TSXV (.V), NEO (.NE), CSE (.CN), and US tickers.
+    Replaces dividendhistory.org which is blocked by Anubis."""
+
+    if not _has(settings.EOD_API_KEY):
+        return None
+
+    async def _step(status: str, **data) -> None:
+        if emit is not None:
+            await emit("signals:declared_fetch", status=status, provider="EOD", **data)
+
+    base = (ticker or "").strip().upper()
+    parts = base.split(".")
+    if len(parts) == 2:
+        root, suffix = parts
+        exchange = _EOD_EXCHANGE.get(suffix, suffix)
+    else:
+        root = base
+        exchange = "US"
+
+    eod_symbol = f"{root}.{exchange}"
+    url = "https://eodhd.com/api/div/" + eod_symbol
+    params = {"api_token": settings.EOD_API_KEY, "fmt": "json"}
+
+    try:
+        r = await client.get(url, params=params)
+    except Exception as exc:
+        await _step("error", url=url, error=str(exc))
+        return None
+
+    if r.status_code != 200:
+        await _step("error", url=url, http=r.status_code)
+        return None
+
+    try:
+        rows = r.json()
+    except Exception:
+        await _step("error", url=url, detail="json parse failed")
+        return None
+
+    if not isinstance(rows, list):
+        await _step("empty", url=url, http=200, detail="unexpected response shape")
+        return None
+
+    declared = _parse_eod_declared(rows, target_ex)
+    if not declared:
+        await _step("empty", url=url, http=200, detail="no declared row for target ex-date")
+        return None
+
+    line = (
+        f"DECLARED dividend on record: {declared['amount']} per share, "
+        f"ex-date {declared['exDate']}, declared {declared['declarationDate']}, "
+        f"pays {declared['payDate'] or 'n/a'}."
+    )
+    await _step(
+        "ok",
+        url=url,
+        http=200,
+        amount=declared["amount"],
+        exDate=declared["exDate"],
+    )
+    return {
+        "label": "DECLARED (EOD Historical Data)",
+        "declared": declared,
+        "lines": [line],
+        "sources": [
+            {
+                "title": f"{base} dividend history (EOD)",
+                "url": f"https://eodhd.com/financial-apis/stock-market-data/dividends-splits/",
+            }
+        ],
+    }
