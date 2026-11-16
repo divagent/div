@@ -648,9 +648,11 @@ async def _run_provider(name: str, coro, emit) -> Optional[dict]:
     try:
         block = await coro
     except Exception as exc:  # noqa: BLE001 - provider failure is reported, not fatal
+        log_event("signals_provider_error", provider=name, error=str(exc))  # ← add
         await emit("signals:provider", status="error", provider=name, error=str(exc))
         return None
     if not isinstance(block, dict):
+        log_event("signals_provider_empty", provider=name)  # ← add
         await emit("signals:provider", status="empty", provider=name)
         return None
     declared_amt = (block.get("declared") or {}).get("amount") if block.get("declared") else None
