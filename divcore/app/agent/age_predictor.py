@@ -16,10 +16,10 @@ import json
 from datetime import date, datetime, timezone
 from typing import Optional
 
+from app.adapters.LLM_Chat import chat_completion_agent_with_model
 from app.agent.age_grounding import build_grounding
 from app.agent.age_signals import gather_dividend_signals
 from app.agent.agent_schema import DividendPrediction, coerce_confidence
-from app.adapters.gemini_chat import chat_completion_agent_with_model
 from app.core.ai_logging import log_event
 from app.schemas.sch_predict import (
     DeclaredDividend,
@@ -29,7 +29,6 @@ from app.schemas.sch_predict import (
     ResearchLayer,
     ResearchSource,
 )
-
 
 # ---------------------------------------------------------------------------
 # Layer 3 — research prediction over authoritative facts + detected pattern.

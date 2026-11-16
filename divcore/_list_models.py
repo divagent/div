@@ -1,5 +1,5 @@
 """List every Gemini model this key can call generateContent on."""
-from app.adapters.gemini import get_gemini_client
+from app.adapters.LLMModels import get_gemini_client
 
 client = get_gemini_client()
 rows = []

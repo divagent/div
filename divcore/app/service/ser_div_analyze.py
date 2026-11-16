@@ -22,7 +22,7 @@ import json
 from datetime import date, datetime, timezone
 
 from app.adapters.gcal_api import patch_private
-from app.adapters.gemini_chat import chat_completion_agent_with_model
+from app.adapters.LLM_Chat import chat_completion_agent_with_model
 from app.agent.age_grounding import build_grounding
 from app.agent.age_rumor import gather_rumors
 from app.agent.age_signals import gather_dividend_signals

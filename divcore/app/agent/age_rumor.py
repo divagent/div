@@ -144,7 +144,7 @@ async def gather_rumors(
 
     brief = "\n\n".join(text_blocks)
     # Local import keeps the module importable without a configured LLM.
-    from app.adapters.gemini_chat import chat_completion_agent_with_model
+    from app.adapters.LLM_Chat import chat_completion_agent_with_model
 
     try:
         raw, model_label = await chat_completion_agent_with_model(

@@ -3,7 +3,7 @@ import logging
 import httpx
 from google.genai import types
 
-from app.adapters.gemini import (
+from app.adapters.LLMModels import (
     _usable_models,
     get_cloudflare_creds,
     get_gemini_client,
@@ -247,35 +247,3 @@ async def chat_completion_agent(
     """
     text, _ = await chat_completion_agent_with_model(system_prompt, user_prompt, messages, model)
     return text
-
-
-# async def chat_completion(system_prompt: str, user_prompt: str) -> str:
-#     resp = await client.chat.completions.create(
-#         model=model_name,
-#         messages=[
-#             {"role": "system", "content": system_prompt},
-#             {"role": "user", "content": user_prompt},
-#         ],
-#         temperature=0.2,
-#     )
-#     return resp.choices[0].message.content
-
-
-# response = client.chat.completions.create(
-#     messages=[
-#         {
-#             "role": "system",
-#             "content": "You are a helpful assistant.",
-#         },
-#         {
-#             "role": "user",
-#             "content": "I am going to Paris, what should I see?",
-#         }
-#     ],
-#     max_completion_tokens=16384,
-#     model=deployment
-# )
-
-# print(response.choices[0].message.content)
-
-
