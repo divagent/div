@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class ResolutionState(TypedDict):
     ticker: str
     target_ex_date: str        # "2024-12-15" approximate
+    raw_html: Optional[str]
     candidate_amount: Optional[float]
     candidate_date: Optional[str]
     verified: bool
